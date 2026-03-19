@@ -331,17 +331,16 @@ class LlmService {
   }) {
     final buffer = StringBuffer();
     buffer.writeln('<start_of_turn>developer');
-    buffer.writeln('You can do function calling with the following functions:');
+    buffer.writeln('You are a model that can do function calling with the following functions');
+    
+    for (final tool in tools) {
+      buffer.writeln('<start_function_declaration>declaration:${tool.name}{description:<escape>${tool.description}<escape>,parameters:{${_formatToolParameters(tool.parameters)}}}<end_function_declaration>');
+    }
+
     if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
       buffer.writeln(systemPrompt.trim());
     }
-    for (final tool in tools) {
-      buffer.writeln('<start_function_declaration>declaration:${tool.name}{');
-      buffer.writeln('description: "${tool.description}",');
-      buffer.writeln('parameters: { ${_formatToolParameters(tool.parameters)} }');
-      buffer.writeln('}');
-      buffer.writeln('<end_function_declaration>');
-    }
+    
     buffer.writeln('<end_of_turn>');
     buffer.writeln('<start_of_turn>user');
     buffer.writeln(userMessage);
@@ -361,8 +360,12 @@ class LlmService {
   }
 
   String _formatToolParameters(Map<String, String> parameters) {
-    if (parameters.isEmpty) return '';
-    return parameters.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+    if (parameters.isEmpty) return 'type:<escape>OBJECT<escape>';
+    final props = parameters.entries
+        .map((e) => '${e.key}:{description:<escape>${e.value}<escape>,type:<escape>STRING<escape>}')
+        .join(',');
+    final reqs = parameters.keys.map((k) => '<escape>$k<escape>').join(',');
+    return 'properties:{$props},required:[$reqs],type:<escape>OBJECT<escape>';
   }
 
   LlmFunctionCall? _parseFunctionCall(String text) {
@@ -396,17 +399,15 @@ class LlmService {
 
   Map<String, String> _parseArguments(String argsText) {
     final Map<String, String> args = {};
-    final lines = argsText.split('\n');
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.endsWith(',')) {
-        line = line.substring(0, line.length - 1);
-      }
-      final separator = line.indexOf(':');
-      if (separator == -1) continue;
-      final key = line.substring(0, separator).trim();
-      var value = line.substring(separator + 1).trim();
+    final regex = RegExp(r"(\w+):(?:<escape>(.*?)<escape>|([^,}]*))");
+    
+    for (final match in regex.allMatches(argsText)) {
+      final key = match.group(1)!;
+      final val1 = match.group(2);
+      final val2 = match.group(3);
+      var value = val1 ?? val2 ?? '';
+      value = value.trim();
+      
       if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
         value = value.substring(1, value.length - 1);
       }
@@ -458,8 +459,8 @@ class LlmService {
     required Map<String, String> response,
   }) {
     final payload = response.entries
-        .map((entry) => '${entry.key}: "${entry.value}"')
-        .join(', ');
-    return '<start_function_response>response:$toolName{$payload}\n<end_function_response>';
+        .map((entry) => '${entry.key}:<escape>${entry.value}<escape>')
+        .join(',');
+    return '<start_function_response>response:$toolName{$payload}<end_function_response>';
   }
 }
