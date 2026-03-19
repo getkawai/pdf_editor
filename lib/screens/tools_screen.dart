@@ -4,6 +4,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import '../tools/tools.dart';
 import '../services/analytics_service.dart';
+import 'widgets/table_editor_widget.dart';
+import 'widgets/shapes_editor_widget.dart';
+import 'widgets/annotations_editor_widget.dart';
+import 'widgets/lists_editor_widget.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -419,117 +423,75 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Future<void> _openAnnotatePdfTool(PdfTool tool) async {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Annotation tool - Coming soon')),
-      );
-    }
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Annotate PDF'),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          ),
+          body: AnnotationsEditorWidget(
+            tool: tool,
+            analytics: _analytics,
+            onExecute: (params) async {
+              Navigator.pop(context);
+              await _executeToolAndShowResult(tool, params);
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openBulletsListTool(PdfTool tool) async {
-    final TextEditingController itemsController = TextEditingController();
-    bool ordered = true;
-
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Create Bullets & Lists'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile(
-                title: const Text('Ordered list'),
-                value: ordered,
-                onChanged: (value) => setState(() => ordered = value),
-              ),
-              TextField(
-                controller: itemsController,
-                decoration: const InputDecoration(
-                  labelText: 'Items (one per line)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 6,
-              ),
-            ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Create Bullets & Lists'),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'items': itemsController.text,
-                  'ordered': ordered,
-                });
-              },
-              child: const Text('Create'),
-            ),
-          ],
+          body: ListsEditorWidget(
+            tool: tool,
+            analytics: _analytics,
+            onExecute: (params) async {
+              Navigator.pop(context);
+              await _executeToolAndShowResult(tool, params);
+            },
+          ),
         ),
       ),
     );
-
-    if (result != null && mounted) {
-      await _executeToolAndShowResult(tool, result);
-    }
   }
 
   Future<void> _openTablePdfTool(PdfTool tool) async {
-    final TextEditingController tableController = TextEditingController();
-    bool hasHeader = true;
-
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Create Table PDF'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile(
-                title: const Text('First row is header'),
-                value: hasHeader,
-                onChanged: (value) => setState(() => hasHeader = value),
-              ),
-              TextField(
-                controller: tableController,
-                decoration: const InputDecoration(
-                  labelText: 'CSV rows (comma-separated)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 6,
-              ),
-            ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Create Table PDF'),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'tableData': tableController.text,
-                  'hasHeader': hasHeader,
-                });
-              },
-              child: const Text('Create'),
-            ),
-          ],
+          body: TableEditorWidget(
+            tool: tool,
+            analytics: _analytics,
+            onExecute: (params) async {
+              Navigator.pop(context);
+              await _executeToolAndShowResult(tool, params);
+            },
+          ),
         ),
       ),
     );
-
-    if (result != null && mounted) {
-      await _executeToolAndShowResult(tool, result);
-    }
   }
 
   Future<void> _openHeaderFooterTool(PdfTool tool) async {
@@ -609,49 +571,27 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Future<void> _openShapesTool(PdfTool tool) async {
-    String shapeType = 'all';
-    const List<String> options = <String>['all', 'rectangle', 'ellipse', 'line', 'polygon'];
-
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Draw Shapes'),
-          content: DropdownButtonFormField<String>(
-            value: shapeType,
-            items: options
-                .map((value) => DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    ))
-                .toList(),
-            onChanged: (value) => setState(() => shapeType = value ?? 'all'),
-            decoration: const InputDecoration(
-              labelText: 'Shape type',
-              border: OutlineInputBorder(),
-            ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Draw Shapes'),
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {'shapeType': shapeType});
-              },
-              child: const Text('Create'),
-            ),
-          ],
+          body: ShapesEditorWidget(
+            tool: tool,
+            analytics: _analytics,
+            onExecute: (params) async {
+              Navigator.pop(context);
+              await _executeToolAndShowResult(tool, params);
+            },
+          ),
         ),
       ),
     );
-
-    if (result != null && mounted) {
-      await _executeToolAndShowResult(tool, result);
-    }
   }
 
   Future<void> _openRtlTextTool(PdfTool tool) async {
