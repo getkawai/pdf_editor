@@ -36,16 +36,12 @@ Future<void> _initializeCrashlytics() async {
 class PdfEditorApp extends StatelessWidget {
   const PdfEditorApp({super.key});
 
-  static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
-  static final FirebaseAnalyticsObserver _observer =
-      FirebaseAnalyticsObserver(analytics: _analytics);
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'PDF Editor',
       debugShowCheckedModeBanner: false,
-      navigatorObservers: <NavigatorObserver>[_observer],
+      navigatorObservers: _buildNavigatorObservers(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blue,
@@ -100,5 +96,19 @@ class PdfEditorApp extends StatelessWidget {
       ),
       home: const HomeScreen(),
     );
+  }
+
+  List<NavigatorObserver> _buildNavigatorObservers() {
+    if (Firebase.apps.isEmpty) {
+      return const <NavigatorObserver>[];
+    }
+    try {
+      final analytics = FirebaseAnalytics.instance;
+      return <NavigatorObserver>[
+        FirebaseAnalyticsObserver(analytics: analytics),
+      ];
+    } catch (_) {
+      return const <NavigatorObserver>[];
+    }
   }
 }
