@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 /// Centralized analytics service for Firebase Analytics event tracking.
@@ -14,10 +15,30 @@ class AnalyticsService {
     return _instance;
   }
 
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  FirebaseAnalytics? _analytics;
 
   /// Get the underlying FirebaseAnalytics instance for advanced usage.
-  FirebaseAnalytics get analytics => _analytics;
+  /// Returns null if Firebase is not initialized.
+  FirebaseAnalytics? get analytics {
+    try {
+      _analytics ??= FirebaseAnalytics.instance;
+      return _analytics;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Analytics not available: $e');
+      }
+      return null;
+    }
+  }
+
+  /// Check if Firebase is initialized and analytics is available.
+  bool get isAvailable {
+    try {
+      return Firebase.apps.isNotEmpty && analytics != null;
+    } catch (e) {
+      return false;
+    }
+  }
 
   // ============================================================================
   // GENERAL EVENTS
@@ -36,8 +57,10 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
+    if (!isAvailable) return;
+    
     try {
-      await _analytics.logEvent(name: name, parameters: parameters);
+      await _analytics!.logEvent(name: name, parameters: parameters);
       if (kDebugMode) {
         debugPrint('📊 Analytics Event: $name, params: $parameters');
       }
@@ -58,8 +81,10 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
+    if (!isAvailable) return;
+    
     try {
-      await _analytics.logEvent(
+      await _analytics!.logEvent(
         name: 'screen_view',
         parameters: {
           'firebase_screen': screenName,
@@ -183,12 +208,14 @@ class AnalyticsService {
 
   /// Log user sign up (if you have authentication).
   Future<void> logSignUp({required String signUpMethod}) async {
-    await _analytics.logSignUp(signUpMethod: signUpMethod);
+    if (!isAvailable) return;
+    await _analytics!.logSignUp(signUpMethod: signUpMethod);
   }
 
   /// Log user login (if you have authentication).
   Future<void> logLogin({required String loginMethod}) async {
-    await _analytics.logLogin(loginMethod: loginMethod);
+    if (!isAvailable) return;
+    await _analytics!.logLogin(loginMethod: loginMethod);
   }
 
   /// Log when user shares content.
@@ -197,16 +224,13 @@ class AnalyticsService {
     String? itemId,
     String? method,
   }) async {
-    final parameters = <String, Object>{};
-    if (contentType != null) parameters['content_type'] = contentType;
-    if (itemId != null) parameters['item_id'] = itemId;
-    if (method != null) parameters['method'] = method;
-
+    if (!isAvailable) return;
+    
     final safeContentType = contentType ?? 'unknown';
     final safeItemId = itemId ?? 'unknown';
     final safeMethod = method ?? 'unknown';
 
-    await _analytics.logShare(
+    await _analytics!.logShare(
       contentType: safeContentType,
       itemId: safeItemId,
       method: safeMethod,
