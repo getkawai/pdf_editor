@@ -23,6 +23,16 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache Flutter pub deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
       - name: Run Flutter tests with coverage
         run: flutter test --coverage
 
@@ -47,6 +57,16 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Cache Flutter pub deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
