@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Run Flutter tests with coverage
+        run: flutter test --coverage
+
+      - name: Print Flutter coverage summary
+        run: |
+          if command -v lcov &>/dev/null; then
+            lcov --summary coverage/lcov.info
+          else
+            echo "lcov not installed – skipping summary"
+          fi
+
+  android:
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
+    needs: [test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        shell: bash
+        run: |
+          sdkmanager "ndk;26.3.11579264" > /dev/null
+          set +o pipefail
+          yes | sdkmanager --licenses > /dev/null
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/26.3.11579264" >> $GITHUB_ENV
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          retention-days: 30
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  ios:
+    runs-on: macos-latest
+    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
+    needs: [test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set Xcode developer dir
+        run: echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> $GITHUB_ENV
+
+      - name: Build iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          retention-days: 30
+          path: build/ios/iphoneos
+
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+      actions: read
+    needs: [android, ios]
+    steps:
+      - name: Resolve build run ID
+        id: resolve_run
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs" \
+            --jq '.workflow_runs
+              | map(select(.event=="push"
+                and (.head_branch=="main" or .head_branch=="master")
+                and .conclusion=="success"
+                and .head_sha=="${{ github.sha }}"))
+              | first
+              | .id')
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No successful push build found on main/master for commit ${{ github.sha }}"
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download Android APK
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          run_id: ${{ steps.resolve_run.outputs.run_id }}
+          name: android-apk
+          path: android-apk
+
+      - name: Download iOS build
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          run_id: ${{ steps.resolve_run.outputs.run_id }}
+          name: ios-build
+          path: ios-build
+
+      - name: Archive artifacts
+        run: |
+          tar -czf android-apk.tar.gz -C android-apk .
+          tar -czf ios-build.tar.gz -C ios-build .
+          shasum -a 256 android-apk.tar.gz ios-build.tar.gz > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            android-apk.tar.gz
+            ios-build.tar.gz
+            checksums.txt
