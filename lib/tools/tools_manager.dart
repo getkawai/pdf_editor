@@ -14,6 +14,7 @@ import 'signature_pdf_tool.dart';
 import 'pdf_a_conformance_tool.dart';
 import 'table_to_pdf_tool.dart';
 import 'list_to_pdf_tool.dart';
+import 'ocr_pdf_tool.dart';
 
 /// Manager for initializing and accessing PDF tools
 class ToolsManager {
@@ -37,6 +38,7 @@ class ToolsManager {
     _registry.registerTool(MergePdfsTool());
     _registry.registerTool(CompressPdfTool());
     _registry.registerTool(AnnotatePdfTool());
+    _registry.registerTool(OcropdfTool());
 
     // AI tools
     _registry.registerTool(AiPdfAssistantTool());
@@ -78,7 +80,10 @@ class ToolsManager {
   }
 
   /// Execute a tool by ID
-  Future<PdfToolResult> executeTool(String toolId, Map<String, dynamic> parameters) async {
+  Future<PdfToolResult> executeTool(
+    String toolId,
+    Map<String, dynamic> parameters,
+  ) async {
     final tool = _registry.getTool(toolId);
     if (tool == null) {
       return PdfToolResult.failure('Tool not found: $toolId');
