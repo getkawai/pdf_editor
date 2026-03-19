@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
+import 'tools_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,6 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PdfEditorScreen()),
+    );
+  }
+
+  Future<void> _openToolsScreen() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ToolsScreen()),
     );
   }
 
@@ -105,6 +113,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _openToolsScreen,
+              icon: const Icon(Icons.build),
+              label: const Text('PDF Tools'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
             if (_recentFilePath != null) ...[
               const SizedBox(height: 32),
               Text(
@@ -142,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
               '• View PDF documents\n'
               '• Create new PDFs\n'
               '• Add text and images\n'
-              '• Draw signatures',
+              '• PDF tools (merge, compress, annotate)',
               style: TextStyle(fontSize: 12),
             ),
           ],
