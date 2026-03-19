@@ -14,6 +14,9 @@ abstract class PdfTool {
   /// Icon data for the tool (to be used in UI)
   String get iconName;
 
+  /// Schema of parameters expected by the tool (for LLM function calling)
+  Map<String, String> get parametersSchema => {};
+
   /// Check if the tool is available
   Future<bool> isAvailable();
 

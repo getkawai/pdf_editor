@@ -18,6 +18,12 @@ class TextToPdfTool implements PdfTool {
   String get iconName => 'Icons.text_fields';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'text': 'The main text content to convert to a PDF file',
+        'title': 'An optional title for the PDF file',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

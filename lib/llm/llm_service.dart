@@ -96,7 +96,7 @@ class LlmService {
       if (useFunctionGemma) {
         final call = _parseFunctionCall(primary.content);
         if (call != null && _isToolDeclared(call.name, request.tools)) {
-          final toolResponse = await _executeFunctionTool(call.name, call.arguments);
+          final toolResponse = await _executeFunctionTool(call.name, call.arguments, request);
           if (toolResponse != null) {
             final responseBlock = _buildFunctionResponseBlock(
               toolName: call.name,
@@ -418,6 +418,7 @@ class LlmService {
   Future<Map<String, String>?> _executeFunctionTool(
     String name,
     Map<String, String> arguments,
+    LlmGenerationRequest request,
   ) async {
     switch (name) {
       case 'get_today_date':
@@ -426,6 +427,9 @@ class LlmService {
           'today_date': _formatDate(today),
         };
       default:
+        if (request.onExecuteTool != null) {
+          return await request.onExecuteTool!(name, arguments);
+        }
         return null;
     }
   }

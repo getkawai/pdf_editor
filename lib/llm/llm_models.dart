@@ -110,6 +110,7 @@ class LlmGenerationRequest {
   final int topP;
   final bool enableFunctionCalling;
   final List<LlmFunctionTool> tools;
+  final Future<Map<String, String>?> Function(String toolName, Map<String, String> args)? onExecuteTool;
 
   const LlmGenerationRequest({
     required this.prompt,
@@ -119,6 +120,7 @@ class LlmGenerationRequest {
     this.topP = 95,
     this.enableFunctionCalling = false,
     this.tools = const [],
+    this.onExecuteTool,
   });
 }
 

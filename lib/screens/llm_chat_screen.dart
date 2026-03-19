@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../llm/llm.dart';
 import '../services/analytics_service.dart';
+import '../tools/tools_manager.dart';
 
 /// Screen for interacting with LLM chat
 class LlmChatScreen extends StatefulWidget {
@@ -24,6 +25,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       parameters: {},
     ),
   ];
+
+  List<LlmFunctionTool> _getAllTools() {
+    final pdfTools = ToolsManager().getAllTools().map((t) => LlmFunctionTool(
+      name: t.id.replaceAll('-', '_'), 
+      description: t.description,
+      parameters: t.parametersSchema,
+    )).toList();
+    
+    return [
+      ..._functionGemmaTools,
+      ...pdfTools,
+    ];
+  }
   bool _isModelLoaded = false;
   bool _isLoading = false;
   String? _selectedModel;
@@ -107,11 +121,24 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       
       final request = LlmGenerationRequest(
         prompt: userMessage,
-        systemPrompt: 'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help manage the calendar and get the current date using the provided tools. Do NOT refuse to answer simple conversational questions.',
+        systemPrompt: 'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools. Do NOT refuse to answer simple conversational questions.',
         temperature: 0.7,
         maxTokens: 512,
         enableFunctionCalling: true,
-        tools: _functionGemmaTools,
+        tools: _getAllTools(),
+        onExecuteTool: (name, args) async {
+          var tool = ToolsManager().getTool(name);
+          tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
+          if (tool != null) {
+            final result = await tool.execute(args);
+            return {
+              'success': result.success.toString(),
+              if (result.errorMessage != null) 'error': result.errorMessage!,
+              if (result.metadata != null) 'metadata': result.metadata.toString(),
+            };
+          }
+          return null;
+        },
       );
 
       final response = await _llmService.generate(request);
