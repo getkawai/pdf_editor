@@ -39,20 +39,13 @@ class AiPdfAssistantTool implements PdfTool {
         return PdfToolResult.failure('Prompt is required');
       }
 
-      // Load model if specified and not already loaded
-      if (modelPath != null && !_llmService.isModelLoaded) {
-        final config = LlmModelConfig(
-          modelPath: modelPath,
-          modelName: 'Custom Model',
-        );
-        final loaded = await _llmService.loadModel(config);
-        if (!loaded) {
-          return PdfToolResult.failure(_llmService.lastError ?? 'Failed to load model');
-        }
+      if (modelPath != null && modelPath.isNotEmpty) {
+        // Backwards compatibility: ignore custom paths and always use FunctionGemma
       }
 
-      if (!_llmService.isModelLoaded) {
-        return PdfToolResult.failure('No AI model loaded. Please configure a model first.');
+      final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
+      if (!loaded) {
+        return PdfToolResult.failure(_llmService.lastError ?? 'Failed to load model');
       }
 
       // Generate content using AI
@@ -181,7 +174,10 @@ class SummarizePdfTool implements PdfTool {
       }
 
       if (!_llmService.isModelLoaded) {
-        return PdfToolResult.failure('No AI model loaded');
+        final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
+        if (!loaded) {
+          return PdfToolResult.failure(_llmService.lastError ?? 'Failed to load model');
+        }
       }
 
       // Extract text from PDF

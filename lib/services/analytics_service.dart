@@ -111,13 +111,11 @@ class AnalyticsService {
     String? documentId,
     int? pageCount,
   }) async {
-    await logEvent(
-      name: 'view_pdf',
-      parameters: {
-        if (documentId != null) 'document_id': documentId,
-        if (pageCount != null) 'page_count': pageCount,
-      },
-    );
+    final parameters = <String, Object>{};
+    if (documentId != null) parameters['document_id'] = documentId;
+    if (pageCount != null) parameters['page_count'] = pageCount;
+    
+    await logEvent(name: 'view_pdf', parameters: parameters.isEmpty ? null : parameters);
   }
 
   /// Log when user edits a PDF (adds text, image, etc.).
@@ -125,13 +123,10 @@ class AnalyticsService {
     required String editType,
     String? details,
   }) async {
-    await logEvent(
-      name: 'edit_pdf',
-      parameters: {
-        'edit_type': editType,
-        if (details != null) 'details': details,
-      },
-    );
+    final parameters = <String, Object>{'edit_type': editType};
+    if (details != null) parameters['details'] = details;
+    
+    await logEvent(name: 'edit_pdf', parameters: parameters);
   }
 
   /// Log when user saves a PDF.
@@ -139,13 +134,11 @@ class AnalyticsService {
     String? documentId,
     int? pageCount,
   }) async {
-    await logEvent(
-      name: 'save_pdf',
-      parameters: {
-        if (documentId != null) 'document_id': documentId,
-        if (pageCount != null) 'page_count': pageCount,
-      },
-    );
+    final parameters = <String, Object>{};
+    if (documentId != null) parameters['document_id'] = documentId;
+    if (pageCount != null) parameters['page_count'] = pageCount;
+    
+    await logEvent(name: 'save_pdf', parameters: parameters.isEmpty ? null : parameters);
   }
 
   // ============================================================================
@@ -163,14 +156,11 @@ class AnalyticsService {
     int? messageLength,
     String? model,
   }) async {
-    await logEvent(
-      name: 'ai_message',
-      parameters: {
-        'message_type': messageType,
-        if (messageLength != null) 'message_length': messageLength,
-        if (model != null) 'model': model,
-      },
-    );
+    final parameters = <String, Object>{'message_type': messageType};
+    if (messageLength != null) parameters['message_length'] = messageLength;
+    if (model != null) parameters['model'] = model;
+    
+    await logEvent(name: 'ai_message', parameters: parameters);
   }
 
   /// Log when AI generates a response.
@@ -179,14 +169,12 @@ class AnalyticsService {
     Duration? latency,
     String? model,
   }) async {
-    await logEvent(
-      name: 'ai_response',
-      parameters: {
-        if (responseLength != null) 'response_length': responseLength,
-        if (latency != null) 'latency_ms': latency.inMilliseconds,
-        if (model != null) 'model': model,
-      },
-    );
+    final parameters = <String, Object>{};
+    if (responseLength != null) parameters['response_length'] = responseLength;
+    if (latency != null) parameters['latency_ms'] = latency.inMilliseconds;
+    if (model != null) parameters['model'] = model;
+    
+    await logEvent(name: 'ai_response', parameters: parameters.isEmpty ? null : parameters);
   }
 
   // ============================================================================
@@ -209,10 +197,19 @@ class AnalyticsService {
     String? itemId,
     String? method,
   }) async {
+    final parameters = <String, Object>{};
+    if (contentType != null) parameters['content_type'] = contentType;
+    if (itemId != null) parameters['item_id'] = itemId;
+    if (method != null) parameters['method'] = method;
+
+    final safeContentType = contentType ?? 'unknown';
+    final safeItemId = itemId ?? 'unknown';
+    final safeMethod = method ?? 'unknown';
+
     await _analytics.logShare(
-      contentType: contentType,
-      itemId: itemId,
-      method: method,
+      contentType: safeContentType,
+      itemId: safeItemId,
+      method: safeMethod,
     );
   }
 
@@ -226,14 +223,13 @@ class AnalyticsService {
     required String errorMessage,
     String? screen,
   }) async {
-    await logEvent(
-      name: 'error',
-      parameters: {
-        'error_type': errorType,
-        'error_message': errorMessage,
-        if (screen != null) 'screen': screen,
-      },
-    );
+    final parameters = <String, Object>{
+      'error_type': errorType,
+      'error_message': errorMessage,
+    };
+    if (screen != null) parameters['screen'] = screen;
+    
+    await logEvent(name: 'error', parameters: parameters);
   }
 
   // ============================================================================
@@ -242,13 +238,13 @@ class AnalyticsService {
 
   /// Set user ID for cross-device tracking.
   Future<void> setUserId(String? userId) async {
-    await _analytics.setUserId(userId);
+    await _analytics.setUserId(id: userId);
   }
 
   /// Set a user property for segmentation.
   Future<void> setUserProperty({
     required String name,
-    required String value,
+    String? value,
   }) async {
     await _analytics.setUserProperty(name: name, value: value);
   }
@@ -258,8 +254,8 @@ class AnalyticsService {
     await _analytics.setAnalyticsCollectionEnabled(enabled);
   }
 
-  /// Get the current session ID.
+  /// Get current analytics session ID (if available).
   Future<int?> getSessionId() async {
-    return await _analytics.sessionId;
+    return _analytics.getSessionId();
   }
 }

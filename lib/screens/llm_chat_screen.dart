@@ -38,35 +38,32 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   Future<void> _initializeService() async {
     await _llmService.initialize();
     if (mounted) {
-      setState(() {
-        _isModelLoaded = _llmService.isModelLoaded;
-      });
-    }
-  }
-
-  Future<void> _loadModel() async {
-    if (_modelPathController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a model path')),
-      );
-      return;
+      setState(() => _isLoading = true);
     }
 
-    setState(() => _isLoading = true);
-
-    final config = LlmModelConfig(
-      modelPath: _modelPathController.text,
-      modelName: 'Custom Model',
-    );
-
-    final success = await _llmService.loadModel(config);
+    final success = await _llmService.ensureFunctionGemmaModelLoaded();
 
     if (mounted) {
       setState(() {
         _isLoading = false;
         _isModelLoaded = success;
         if (success) {
-          _selectedModel = config.modelName;
+          _selectedModel = LlmModelConfig.functionGemma_270m.modelName;
+        }
+      });
+    }
+  }
+
+  Future<void> _loadModel() async {
+    setState(() => _isLoading = true);
+    final success = await _llmService.ensureFunctionGemmaModelLoaded();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _isModelLoaded = success;
+        if (success) {
+          _selectedModel = LlmModelConfig.functionGemma_270m.modelName;
         }
       });
 
@@ -242,37 +239,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Load LLM Model',
+            'FunctionGemma Model',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _modelPathController,
-            decoration: const InputDecoration(
-              labelText: 'Model Path (.gguf file)',
-              hintText: '/path/to/model.gguf',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.storage),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: LlmService.recommendedModels.entries.map((entry) {
-              return ActionChip(
-                label: Text(entry.key, style: const TextStyle(fontSize: 12)),
-                onPressed: () {
-                  setState(() {
-                    _modelPathController.text = entry.value;
-                  });
-                },
-              );
-            }).toList(),
+          const Text(
+            'The app will automatically download and load FunctionGemma 270M (BF16).',
           ),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _isLoading ? null : _loadModel,
-            child: const Text('Load Model'),
+            child: const Text('Download & Load'),
           ),
           if (_selectedModel != null)
             Padding(

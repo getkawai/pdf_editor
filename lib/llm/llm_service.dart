@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:llamadart/llamadart.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'llm_models.dart';
 
 /// Service for managing LLM inference using LlamaDart
@@ -196,12 +198,95 @@ class LlmService {
 
   /// Get recommended model download URLs
   static const Map<String, String> recommendedModels = {
-    'TinyLlama 1.1B': 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-    'Phi 2': 'https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf',
-    'Mistral 7B': 'https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf',
-    'Llama 2 7B': 'https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf',
     'FunctionGemma 270M (BF16)': 'https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-BF16.gguf',
   };
+
+  static const String _functionGemmaFileName = 'functiongemma-270m-it-BF16.gguf';
+  static const String _functionGemmaUrl =
+      'https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-BF16.gguf';
+
+  Future<bool> ensureFunctionGemmaModelLoaded() async {
+    if (kIsWeb) {
+      _error = 'FunctionGemma download is not supported on web.';
+      return false;
+    }
+
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    if (_currentModel != null &&
+        _engine != null &&
+        _currentModel!.modelPath.toLowerCase().contains('functiongemma')) {
+      return true;
+    }
+
+    try {
+      final modelPath = await getFunctionGemmaModelPath();
+      final file = File(modelPath);
+      if (!await file.exists()) {
+        await _downloadFunctionGemma(file);
+      }
+
+      final config = LlmModelConfig(
+        modelPath: modelPath,
+        modelName: LlmModelConfig.functionGemma_270m.modelName,
+        contextSize: LlmModelConfig.functionGemma_270m.contextSize,
+        gpuLayers: LlmModelConfig.functionGemma_270m.gpuLayers,
+        threads: LlmModelConfig.functionGemma_270m.threads,
+        temperature: LlmModelConfig.functionGemma_270m.temperature,
+        maxTokens: LlmModelConfig.functionGemma_270m.maxTokens,
+      );
+
+      return await loadModel(config);
+    } catch (e) {
+      _error = 'Failed to prepare FunctionGemma: $e';
+      return false;
+    }
+  }
+
+  Future<String> getFunctionGemmaModelPath() async {
+    final directory = await getApplicationSupportDirectory();
+    final modelsDir = Directory('${directory.path}/models');
+    if (!await modelsDir.exists()) {
+      await modelsDir.create(recursive: true);
+    }
+    return '${modelsDir.path}/$_functionGemmaFileName';
+  }
+
+  Future<void> _downloadFunctionGemma(File target) async {
+    final temp = File('${target.path}.download');
+    if (await temp.exists()) {
+      await temp.delete();
+    }
+
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse(_functionGemmaUrl));
+      final response = await request.close();
+      if (response.statusCode != 200) {
+        throw HttpException('Download failed with status ${response.statusCode}');
+      }
+
+      final sink = temp.openWrite();
+      await response.pipe(sink);
+      await sink.flush();
+      await sink.close();
+
+      if (await target.exists()) {
+        await target.delete();
+      }
+
+      try {
+        await temp.rename(target.path);
+      } catch (_) {
+        await temp.copy(target.path);
+        await temp.delete();
+      }
+    } finally {
+      client.close();
+    }
+  }
 
   Future<LlmGenerationResponse> _generateInternal(String prompt) async {
     final stopwatch = Stopwatch()..start();
