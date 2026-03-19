@@ -18,13 +18,17 @@ class AnnotatePdfTool implements PdfTool {
   String get iconName => 'Icons.edit_note';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
-      final List<Map<String, dynamic>>? annotations = 
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final List<Map<String, dynamic>>? annotations =
           parameters['annotations'] as List<Map<String, dynamic>>?;
       final int pageNumber = parameters['pageNumber'] as int? ?? 1;
 
@@ -50,7 +54,7 @@ class AnnotatePdfTool implements PdfTool {
       // Apply annotations
       for (final annotation in annotations) {
         final String type = annotation['type'] as String;
-        
+
         switch (type) {
           case 'text':
             _addTextAnnotation(page, annotation);
@@ -88,18 +92,19 @@ class AnnotatePdfTool implements PdfTool {
     final String? text = annotation['text'] as String?;
     final double x = (annotation['x'] as num?)?.toDouble() ?? 50.0;
     final double y = (annotation['y'] as num?)?.toDouble() ?? 50.0;
-    final double fontSize = (annotation['fontSize'] as num?)?.toDouble() ?? 12.0;
+    final double fontSize =
+        (annotation['fontSize'] as num?)?.toDouble() ?? 12.0;
     final String? colorHex = annotation['color'] as String?;
 
     final PdfFont font = PdfStandardFont(PdfFontFamily.helvetica, fontSize);
-    final PdfBrush brush = colorHex != null 
+    final PdfBrush brush = colorHex != null
         ? PdfSolidBrush(_hexToColor(colorHex))
         : PdfBrushes.black;
 
     page.graphics.drawString(
-      text ?? '', 
-      font, 
-      brush: brush, 
+      text ?? '',
+      font,
+      brush: brush,
       bounds: ui.Rect.fromLTWH(x, y, 200, 50),
     );
   }

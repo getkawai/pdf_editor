@@ -12,10 +12,14 @@ class ListToPdfTool implements PdfTool {
   String get name => 'List to PDF';
 
   @override
-  String get description => 'Create PDF documents with ordered and unordered lists';
+  String get description =>
+      'Create PDF documents with ordered and unordered lists';
 
   @override
   String get iconName => 'Icons.format_list_bulleted';
+
+  @override
+  Map<String, String> get parametersSchema => {};
 
   @override
   Future<bool> isAvailable() async => true;
@@ -23,11 +27,13 @@ class ListToPdfTool implements PdfTool {
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final List<Map<String, dynamic>> items = parameters['items'] as List<Map<String, dynamic>>? ?? [];
+      final List<Map<String, dynamic>> items =
+          parameters['items'] as List<Map<String, dynamic>>? ?? [];
       final String title = parameters['title'] as String? ?? '';
       final String listType = parameters['listType'] as String? ?? 'unordered';
       final String? fontFamily = parameters['fontFamily'] as String?;
-      final double fontSize = (parameters['fontSize'] as num?)?.toDouble() ?? 12.0;
+      final double fontSize =
+          (parameters['fontSize'] as num?)?.toDouble() ?? 12.0;
 
       if (items.isEmpty) {
         return PdfToolResult.failure('At least one list item is required');
@@ -50,13 +56,20 @@ class ListToPdfTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
 
       // Create list items
-      final List<String> listItems = items.map((item) => item['text'] as String).toList();
+      final List<String> listItems = items
+          .map((item) => item['text'] as String)
+          .toList();
 
       if (listType.toLowerCase() == 'ordered') {
         // Create ordered list (numbered)
@@ -185,15 +198,20 @@ class ParagraphToPdfTool implements PdfTool {
   String get iconName => 'Icons.format_paragraph';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final List<Map<String, dynamic>> paragraphs = parameters['paragraphs'] as List<Map<String, dynamic>>? ?? [];
+      final List<Map<String, dynamic>> paragraphs =
+          parameters['paragraphs'] as List<Map<String, dynamic>>? ?? [];
       final String title = parameters['title'] as String? ?? '';
       final String? fontFamily = parameters['fontFamily'] as String?;
-      final double fontSize = (parameters['fontSize'] as num?)?.toDouble() ?? 12.0;
+      final double fontSize =
+          (parameters['fontSize'] as num?)?.toDouble() ?? 12.0;
 
       if (paragraphs.isEmpty) {
         return PdfToolResult.failure('At least one paragraph is required');
@@ -216,7 +234,12 @@ class ParagraphToPdfTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
@@ -227,25 +250,28 @@ class ParagraphToPdfTool implements PdfTool {
         final bool isHeading = paragraph['isHeading'] as bool? ?? false;
 
         final font = isHeading
-            ? PdfStandardFont(_getFontFamily(fontFamily), fontSize + 4, style: PdfFontStyle.bold)
+            ? PdfStandardFont(
+                _getFontFamily(fontFamily),
+                fontSize + 4,
+                style: PdfFontStyle.bold,
+              )
             : PdfStandardFont(_getFontFamily(fontFamily), fontSize);
 
-        final result = PdfTextElement(
-          text: text,
-          font: font,
-          brush: PdfSolidBrush(PdfColor(0, 0, 0)),
-        ).draw(
-          page: page,
-          bounds: ui.Rect.fromLTWH(
-            50,
-            yOffset,
-            page.getClientSize().width - 100,
-            page.getClientSize().height - yOffset - 50,
-          ),
-          format: PdfLayoutFormat(
-            layoutType: PdfLayoutType.paginate,
-          ),
-        );
+        final result =
+            PdfTextElement(
+              text: text,
+              font: font,
+              brush: PdfSolidBrush(PdfColor(0, 0, 0)),
+            ).draw(
+              page: page,
+              bounds: ui.Rect.fromLTWH(
+                50,
+                yOffset,
+                page.getClientSize().width - 100,
+                page.getClientSize().height - yOffset - 50,
+              ),
+              format: PdfLayoutFormat(layoutType: PdfLayoutType.paginate),
+            );
 
         if (result != null) {
           yOffset = result.bounds.bottom + 20;

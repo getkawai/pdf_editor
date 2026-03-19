@@ -19,14 +19,20 @@ class SignaturePdfTool implements PdfTool {
   String get iconName => 'Icons.edit_signatures';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
-      final Uint8List? certificateData = parameters['certificateData'] as Uint8List?;
-      final String? certificatePassword = parameters['certificatePassword'] as String?;
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final Uint8List? certificateData =
+          parameters['certificateData'] as Uint8List?;
+      final String? certificatePassword =
+          parameters['certificatePassword'] as String?;
       final String? certificatePath = parameters['certificatePath'] as String?;
       final int pageNumber = parameters['pageNumber'] as int? ?? 1;
       final double x = (parameters['x'] as num?)?.toDouble() ?? 50.0;
@@ -40,7 +46,8 @@ class SignaturePdfTool implements PdfTool {
         return PdfToolResult.failure('PDF data is required');
       }
 
-      if (certificateData == null && (certificatePath == null || certificatePath.isEmpty)) {
+      if (certificateData == null &&
+          (certificatePath == null || certificatePath.isEmpty)) {
         return PdfToolResult.failure('Certificate file (.pfx) is required');
       }
 
@@ -119,6 +126,9 @@ class CreateSignedPdfTool implements PdfTool {
   String get iconName => 'Icons.note_add';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
@@ -126,9 +136,11 @@ class CreateSignedPdfTool implements PdfTool {
     try {
       final String text = parameters['text'] as String? ?? '';
       final String title = parameters['title'] as String? ?? '';
-      final Uint8List? certificateData = parameters['certificateData'] as Uint8List?;
+      final Uint8List? certificateData =
+          parameters['certificateData'] as Uint8List?;
       final String? certificatePath = parameters['certificatePath'] as String?;
-      final String? certificatePassword = parameters['certificatePassword'] as String?;
+      final String? certificatePassword =
+          parameters['certificatePassword'] as String?;
       final String? reason = parameters['reason'] as String?;
       final String? contactInfo = parameters['contactInfo'] as String?;
 
@@ -136,7 +148,8 @@ class CreateSignedPdfTool implements PdfTool {
         return PdfToolResult.failure('Text content is required');
       }
 
-      if (certificateData == null && (certificatePath == null || certificatePath.isEmpty)) {
+      if (certificateData == null &&
+          (certificatePath == null || certificatePath.isEmpty)) {
         return PdfToolResult.failure('Certificate file (.pfx) is required');
       }
 
@@ -161,17 +174,19 @@ class CreateSignedPdfTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
 
       // Add content text
       final PdfFont textFont = PdfStandardFont(PdfFontFamily.helvetica, 12);
-      PdfTextElement(
-        text: text,
-        font: textFont,
-      ).draw(
+      PdfTextElement(text: text, font: textFont).draw(
         page: page,
         bounds: ui.Rect.fromLTWH(
           50,
@@ -195,12 +210,7 @@ class CreateSignedPdfTool implements PdfTool {
       final signatureField = PdfSignatureField(
         page,
         'Signature',
-        bounds: ui.Rect.fromLTWH(
-          50,
-          page.getClientSize().height - 80,
-          200,
-          50,
-        ),
+        bounds: ui.Rect.fromLTWH(50, page.getClientSize().height - 80, 200, 50),
         signature: PdfSignature(
           certificate: PdfCertificate(certBytes, certificatePassword),
           contactInfo: contactInfo,
@@ -216,11 +226,7 @@ class CreateSignedPdfTool implements PdfTool {
 
       return PdfToolResult.success(
         pdfData: Uint8List.fromList(bytes),
-        metadata: {
-          'pageCount': 1,
-          'title': title,
-          'signed': true,
-        },
+        metadata: {'pageCount': 1, 'title': title, 'signed': true},
       );
     } catch (e) {
       return PdfToolResult.failure('Error creating signed PDF: $e');
@@ -243,12 +249,16 @@ class VerifySignaturePdfTool implements PdfTool {
   String get iconName => 'Icons.verified';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
 
       if (pdfData.isEmpty) {
         return PdfToolResult.failure('PDF data is required');

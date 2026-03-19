@@ -21,6 +21,9 @@ class OcropdfTool implements PdfTool {
   String get iconName => 'Icons.text_fields';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

@@ -17,6 +17,9 @@ class DecryptPdfTool implements PdfTool {
   String get iconName => 'Icons.lock_open';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
@@ -32,7 +35,10 @@ class DecryptPdfTool implements PdfTool {
         return PdfToolResult.failure('Password is required');
       }
 
-      final PdfDocument source = PdfDocument(inputBytes: pdfData, password: password);
+      final PdfDocument source = PdfDocument(
+        inputBytes: pdfData,
+        password: password,
+      );
       final PdfDocument output = PdfDocument();
 
       for (int i = 0; i < source.pages.count; i++) {

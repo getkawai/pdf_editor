@@ -18,12 +18,16 @@ class ImageToPdfTool implements PdfTool {
   String get iconName => 'Icons.image';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List imageData = parameters['imageData'] as Uint8List? ?? Uint8List(0);
+      final Uint8List imageData =
+          parameters['imageData'] as Uint8List? ?? Uint8List(0);
       final String title = parameters['title'] as String? ?? '';
       final String fitMode = parameters['fitMode'] as String? ?? 'fit';
 
@@ -48,7 +52,12 @@ class ImageToPdfTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 20;
       }
@@ -66,14 +75,18 @@ class ImageToPdfTool implements PdfTool {
         case 'fit':
           final double widthRatio = availableWidth / pdfImage.width;
           final double heightRatio = availableHeight / pdfImage.height;
-          final double scale = widthRatio < heightRatio ? widthRatio : heightRatio;
+          final double scale = widthRatio < heightRatio
+              ? widthRatio
+              : heightRatio;
           imageWidth = pdfImage.width * scale;
           imageHeight = pdfImage.height * scale;
           break;
         case 'fill':
           final double widthRatio = availableWidth / pdfImage.width;
           final double heightRatio = availableHeight / pdfImage.height;
-          final double scale = widthRatio > heightRatio ? widthRatio : heightRatio;
+          final double scale = widthRatio > heightRatio
+              ? widthRatio
+              : heightRatio;
           imageWidth = pdfImage.width * scale;
           imageHeight = pdfImage.height * scale;
           break;

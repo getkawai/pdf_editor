@@ -23,6 +23,9 @@ class AiPdfAssistantTool implements PdfTool {
   String get iconName => 'Icons.smart_toy';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async {
     return await _llmService.initialize();
   }
@@ -45,7 +48,9 @@ class AiPdfAssistantTool implements PdfTool {
 
       final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
       if (!loaded) {
-        return PdfToolResult.failure(_llmService.lastError ?? 'Failed to load model');
+        return PdfToolResult.failure(
+          _llmService.lastError ?? 'Failed to load model',
+        );
       }
 
       // Generate content using AI
@@ -59,7 +64,9 @@ class AiPdfAssistantTool implements PdfTool {
       final response = await _llmService.generate(request);
 
       if (!response.isComplete || response.errorMessage != null) {
-        return PdfToolResult.failure(response.errorMessage ?? 'AI generation failed');
+        return PdfToolResult.failure(
+          response.errorMessage ?? 'AI generation failed',
+        );
       }
 
       // Create PDF with generated content
@@ -79,21 +86,20 @@ class AiPdfAssistantTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
 
       // Add AI-generated content
-      final PdfFont textFont = PdfStandardFont(
-        PdfFontFamily.helvetica,
-        12,
-      );
+      final PdfFont textFont = PdfStandardFont(PdfFontFamily.helvetica, 12);
 
-      PdfTextElement(
-        text: response.content,
-        font: textFont,
-      ).draw(
+      PdfTextElement(text: response.content, font: textFont).draw(
         page: page,
         bounds: ui.Rect.fromLTWH(
           50,
@@ -159,6 +165,9 @@ class SummarizePdfTool implements PdfTool {
   String get iconName => 'Icons.auto_awesome';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async {
     return await _llmService.initialize();
   }
@@ -166,8 +175,10 @@ class SummarizePdfTool implements PdfTool {
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
-      final String summaryType = parameters['summaryType'] as String? ?? 'brief';
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final String summaryType =
+          parameters['summaryType'] as String? ?? 'brief';
 
       if (pdfData.isEmpty) {
         return PdfToolResult.failure('PDF data is required');
@@ -176,7 +187,9 @@ class SummarizePdfTool implements PdfTool {
       if (!_llmService.isModelLoaded) {
         final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
         if (!loaded) {
-          return PdfToolResult.failure(_llmService.lastError ?? 'Failed to load model');
+          return PdfToolResult.failure(
+            _llmService.lastError ?? 'Failed to load model',
+          );
         }
       }
 
@@ -188,7 +201,8 @@ class SummarizePdfTool implements PdfTool {
       }
 
       // Create summary prompt
-      final String prompt = 'Please summarize the following text in a $summaryType manner:\n\n$extractedText';
+      final String prompt =
+          'Please summarize the following text in a $summaryType manner:\n\n$extractedText';
 
       // Generate summary using AI
       final request = LlmGenerationRequest(
@@ -201,7 +215,9 @@ class SummarizePdfTool implements PdfTool {
       final response = await _llmService.generate(request);
 
       if (!response.isComplete || response.errorMessage != null) {
-        return PdfToolResult.failure(response.errorMessage ?? 'Summarization failed');
+        return PdfToolResult.failure(
+          response.errorMessage ?? 'Summarization failed',
+        );
       }
 
       // Create PDF with summary
@@ -218,18 +234,17 @@ class SummarizePdfTool implements PdfTool {
       graphics.drawString(
         'PDF Summary',
         titleFont,
-        bounds: ui.Rect.fromLTWH(50, 50, page.graphics.clientSize.width - 100, 40),
+        bounds: ui.Rect.fromLTWH(
+          50,
+          50,
+          page.graphics.clientSize.width - 100,
+          40,
+        ),
       );
 
       // Add summary
-      final PdfFont textFont = PdfStandardFont(
-        PdfFontFamily.helvetica,
-        12,
-      );
-      PdfTextElement(
-        text: response.content,
-        font: textFont,
-      ).draw(
+      final PdfFont textFont = PdfStandardFont(PdfFontFamily.helvetica, 12);
+      PdfTextElement(text: response.content, font: textFont).draw(
         page: page,
         bounds: ui.Rect.fromLTWH(
           50,

@@ -18,13 +18,18 @@ class BookmarkPdfTool implements PdfTool {
   String get iconName => 'Icons.bookmark_add';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
-      final List<Map<String, dynamic>>? bookmarks = parameters['bookmarks'] as List<Map<String, dynamic>>?;
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final List<Map<String, dynamic>>? bookmarks =
+          parameters['bookmarks'] as List<Map<String, dynamic>>?;
 
       if (pdfData.isEmpty) {
         return PdfToolResult.failure('PDF data is required');
@@ -79,10 +84,7 @@ class BookmarkPdfTool implements PdfTool {
 
       return PdfToolResult.success(
         pdfData: Uint8List.fromList(bytes),
-        metadata: {
-          'pageCount': pageCount,
-          'bookmarksAdded': bookmarksAdded,
-        },
+        metadata: {'pageCount': pageCount, 'bookmarksAdded': bookmarksAdded},
       );
     } catch (e) {
       return PdfToolResult.failure('Error adding bookmarks: $e');
@@ -119,12 +121,16 @@ class CreateBookmarkedPdfTool implements PdfTool {
   String get iconName => 'Icons.book';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final List<Map<String, dynamic>> sections = parameters['sections'] as List<Map<String, dynamic>>? ?? [];
+      final List<Map<String, dynamic>> sections =
+          parameters['sections'] as List<Map<String, dynamic>>? ?? [];
       final String title = parameters['title'] as String? ?? '';
 
       if (sections.isEmpty) {
@@ -139,7 +145,8 @@ class CreateBookmarkedPdfTool implements PdfTool {
         final String sectionTitle = section['title'] as String;
         final String content = section['content'] as String? ?? '';
         final String? fontFamily = section['fontFamily'] as String?;
-        final double fontSize = (section['fontSize'] as num?)?.toDouble() ?? 12.0;
+        final double fontSize =
+            (section['fontSize'] as num?)?.toDouble() ?? 12.0;
 
         // Add a new page for this section
         final PdfPage page = document.pages.add();
@@ -160,7 +167,12 @@ class CreateBookmarkedPdfTool implements PdfTool {
         graphics.drawString(
           sectionTitle,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 40),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            40,
+          ),
         );
         yOffset += 50;
 
@@ -170,10 +182,7 @@ class CreateBookmarkedPdfTool implements PdfTool {
             _getFontFamily(fontFamily),
             fontSize,
           );
-          PdfTextElement(
-            text: content,
-            font: textFont,
-          ).draw(
+          PdfTextElement(text: content, font: textFont).draw(
             page: page,
             bounds: ui.Rect.fromLTWH(
               50,

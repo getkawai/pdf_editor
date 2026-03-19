@@ -17,12 +17,16 @@ class CompressPdfTool implements PdfTool {
   String get iconName => 'Icons.compress';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
 
       if (pdfData.isEmpty) {
         return PdfToolResult.failure('PDF data is required');
@@ -31,15 +35,15 @@ class CompressPdfTool implements PdfTool {
       // Load the PDF document
       final PdfDocument document = PdfDocument(inputBytes: pdfData);
       final int originalPageCount = document.pages.count;
-      
+
       // Save the document (Syncfusion automatically applies compression)
       final List<int> bytes = await document.save();
       final int compressedSize = bytes.length;
       document.dispose();
 
       final int originalSize = pdfData.lengthInBytes;
-      final double compressionRatio = originalSize > 0 
-          ? ((originalSize - compressedSize) / originalSize) * 100 
+      final double compressionRatio = originalSize > 0
+          ? ((originalSize - compressedSize) / originalSize) * 100
           : 0;
 
       return PdfToolResult.success(

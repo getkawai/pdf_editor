@@ -16,6 +16,9 @@ class EncryptPdfTool implements PdfTool {
   String get iconName => 'Icons.lock';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

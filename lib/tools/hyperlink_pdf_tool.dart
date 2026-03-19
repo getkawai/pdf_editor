@@ -17,6 +17,9 @@ class HyperlinkPdfTool implements PdfTool {
   String get iconName => 'Icons.link';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

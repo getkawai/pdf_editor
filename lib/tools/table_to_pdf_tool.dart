@@ -12,10 +12,14 @@ class TableToPdfTool implements PdfTool {
   String get name => 'Table to PDF';
 
   @override
-  String get description => 'Generate PDF tables with different styles and formats';
+  String get description =>
+      'Generate PDF tables with different styles and formats';
 
   @override
   String get iconName => 'Icons.table_chart';
+
+  @override
+  Map<String, String> get parametersSchema => {};
 
   @override
   Future<bool> isAvailable() async => true;
@@ -23,7 +27,8 @@ class TableToPdfTool implements PdfTool {
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final List<List<dynamic>> data = parameters['data'] as List<List<dynamic>>? ?? [];
+      final List<List<dynamic>> data =
+          parameters['data'] as List<List<dynamic>>? ?? [];
       final List<String>? headers = parameters['headers'] as List<String>?;
       final String title = parameters['title'] as String? ?? '';
       final String? fontFamily = parameters['fontFamily'] as String?;
@@ -49,7 +54,12 @@ class TableToPdfTool implements PdfTool {
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 40;
       }
@@ -58,7 +68,8 @@ class TableToPdfTool implements PdfTool {
       final PdfGrid grid = PdfGrid();
 
       // Add columns
-      final int columnCount = headers?.length ?? (data.isNotEmpty ? data[0].length : 0);
+      final int columnCount =
+          headers?.length ?? (data.isNotEmpty ? data[0].length : 0);
       for (int i = 0; i < columnCount; i++) {
         grid.columns.add();
       }
@@ -72,7 +83,11 @@ class TableToPdfTool implements PdfTool {
         // Style header row
         headerRow.style.backgroundBrush = PdfSolidBrush(PdfColor(68, 114, 196));
         headerRow.style.textBrush = PdfBrushes.white;
-        headerRow.style.font = PdfStandardFont(_getFontFamily(fontFamily), 12, style: PdfFontStyle.bold);
+        headerRow.style.font = PdfStandardFont(
+          _getFontFamily(fontFamily),
+          12,
+          style: PdfFontStyle.bold,
+        );
       }
 
       // Add data rows
@@ -91,7 +106,12 @@ class TableToPdfTool implements PdfTool {
           row.style.backgroundBrush = PdfSolidBrush(PdfColor(240, 240, 240));
         }
         for (int j = 0; j < row.cells.count; j++) {
-          row.cells[j].style.cellPadding = PdfPaddings(bottom: 5, left: 5, right: 5, top: 5);
+          row.cells[j].style.cellPadding = PdfPaddings(
+            bottom: 5,
+            left: 5,
+            right: 5,
+            top: 5,
+          );
           row.cells[j].stringFormat.alignment = PdfTextAlignment.center;
         }
       }
@@ -99,7 +119,12 @@ class TableToPdfTool implements PdfTool {
       // Draw the grid
       grid.draw(
         page: page,
-        bounds: ui.Rect.fromLTWH(50, yOffset, page.getClientSize().width - 100, 0),
+        bounds: ui.Rect.fromLTWH(
+          50,
+          yOffset,
+          page.getClientSize().width - 100,
+          0,
+        ),
       );
 
       // Save the document

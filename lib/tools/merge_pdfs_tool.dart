@@ -18,12 +18,16 @@ class MergePdfsTool implements PdfTool {
   String get iconName => 'Icons.merge';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final List<Uint8List> pdfDataList = parameters['pdfDataList'] as List<Uint8List>? ?? [];
+      final List<Uint8List> pdfDataList =
+          parameters['pdfDataList'] as List<Uint8List>? ?? [];
 
       if (pdfDataList.isEmpty) {
         return PdfToolResult.failure('At least one PDF document is required');
@@ -45,7 +49,7 @@ class MergePdfsTool implements PdfTool {
       for (final pdfData in pdfDataList) {
         // Load the PDF document
         final PdfDocument document = PdfDocument(inputBytes: pdfData);
-        
+
         // Copy all pages
         for (int i = 0; i < document.pages.count; i++) {
           final newPage = mergedDocument.pages.add();
@@ -53,7 +57,7 @@ class MergePdfsTool implements PdfTool {
           newPage.graphics.drawPdfTemplate(template, Offset.zero);
           totalPages++;
         }
-        
+
         document.dispose();
       }
 

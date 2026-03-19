@@ -12,10 +12,14 @@ class PdfAConformanceTool implements PdfTool {
   String get name => 'PDF/A Conformance';
 
   @override
-  String get description => 'Create PDF/A-1B, PDF/A-2B, PDF/A-3B conformant documents';
+  String get description =>
+      'Create PDF/A-1B, PDF/A-2B, PDF/A-3B conformant documents';
 
   @override
   String get iconName => 'Icons.archive';
+
+  @override
+  Map<String, String> get parametersSchema => {};
 
   @override
   Future<bool> isAvailable() async => true;
@@ -25,7 +29,8 @@ class PdfAConformanceTool implements PdfTool {
     try {
       final String text = parameters['text'] as String? ?? '';
       final String title = parameters['title'] as String? ?? '';
-      final String conformanceLevel = parameters['conformanceLevel'] as String? ?? 'a1b';
+      final String conformanceLevel =
+          parameters['conformanceLevel'] as String? ?? 'a1b';
       final String? fontPath = parameters['fontPath'] as String?;
 
       if (text.isEmpty) {
@@ -43,21 +48,27 @@ class PdfAConformanceTool implements PdfTool {
 
       // Add title if provided
       if (title.isNotEmpty) {
-        final PdfFont titleFont = _getFont(fontPath, 24, style: PdfFontStyle.bold);
+        final PdfFont titleFont = _getFont(
+          fontPath,
+          24,
+          style: PdfFontStyle.bold,
+        );
         graphics.drawString(
           title,
           titleFont,
-          bounds: ui.Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: ui.Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
 
       // Add content text
       final PdfFont textFont = _getFont(fontPath, 12);
-      PdfTextElement(
-        text: text,
-        font: textFont,
-      ).draw(
+      PdfTextElement(text: text, font: textFont).draw(
         page: page,
         bounds: ui.Rect.fromLTWH(
           50,
@@ -86,7 +97,11 @@ class PdfAConformanceTool implements PdfTool {
     }
   }
 
-  PdfFont _getFont(String? fontPath, double size, {PdfFontStyle style = PdfFontStyle.regular}) {
+  PdfFont _getFont(
+    String? fontPath,
+    double size, {
+    PdfFontStyle style = PdfFontStyle.regular,
+  }) {
     if (fontPath != null && fontPath.isNotEmpty) {
       // For PDF/A, we need to embed fonts
       // Note: In real implementation, you'd read the font file
@@ -111,13 +126,18 @@ class ConvertToPdfATool implements PdfTool {
   String get iconName => 'Icons.convert_to_text';
 
   @override
+  Map<String, String> get parametersSchema => {};
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List pdfData = parameters['pdfData'] as Uint8List? ?? Uint8List(0);
-      final String conformanceLevel = parameters['conformanceLevel'] as String? ?? 'a1b';
+      final Uint8List pdfData =
+          parameters['pdfData'] as Uint8List? ?? Uint8List(0);
+      final String conformanceLevel =
+          parameters['conformanceLevel'] as String? ?? 'a1b';
 
       if (pdfData.isEmpty) {
         return PdfToolResult.failure('PDF data is required');
