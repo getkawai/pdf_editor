@@ -69,40 +69,13 @@ jobs:
           retention-days: 30
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  ios:
-    runs-on: macos-latest
-    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
-    needs: [test]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Set Xcode developer dir
-        run: echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> $GITHUB_ENV
-
-      - name: Build iOS app
-        run: flutter build ios --release --no-codesign
-
-      - name: Upload iOS build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-build
-          retention-days: 30
-          path: build/ios/iphoneos
-
   release:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
       actions: read
-    needs: [android, ios]
+    needs: [android]
     steps:
       - name: Resolve build run ID
         id: resolve_run
@@ -133,19 +106,10 @@ jobs:
           name: android-apk
           path: android-apk
 
-      - name: Download iOS build
-        uses: dawidd6/action-download-artifact@v6
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          run_id: ${{ steps.resolve_run.outputs.run_id }}
-          name: ios-build
-          path: ios-build
-
       - name: Archive artifacts
         run: |
           tar -czf android-apk.tar.gz -C android-apk .
-          tar -czf ios-build.tar.gz -C ios-build .
-          shasum -a 256 android-apk.tar.gz ios-build.tar.gz > checksums.txt
+          shasum -a 256 android-apk.tar.gz > checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -153,5 +117,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             android-apk.tar.gz
-            ios-build.tar.gz
             checksums.txt

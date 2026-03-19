@@ -6,6 +6,14 @@ import 'merge_pdfs_tool.dart';
 import 'compress_pdf_tool.dart';
 import 'annotate_pdf_tool.dart';
 import 'ai_pdf_tools.dart';
+import 'bookmark_pdf_tool.dart';
+import 'encrypt_pdf_tool.dart';
+import 'decrypt_pdf_tool.dart';
+import 'hyperlink_pdf_tool.dart';
+import 'signature_pdf_tool.dart';
+import 'pdf_a_conformance_tool.dart';
+import 'table_to_pdf_tool.dart';
+import 'list_to_pdf_tool.dart';
 
 /// Manager for initializing and accessing PDF tools
 class ToolsManager {
@@ -23,14 +31,37 @@ class ToolsManager {
 
   /// Initialize all built-in tools
   void _initializeTools() {
-    // Register all built-in tools
+    // Core tools
     _registry.registerTool(TextToPdfTool());
     _registry.registerTool(ImageToPdfTool());
     _registry.registerTool(MergePdfsTool());
     _registry.registerTool(CompressPdfTool());
     _registry.registerTool(AnnotatePdfTool());
+
+    // AI tools
     _registry.registerTool(AiPdfAssistantTool());
     _registry.registerTool(SummarizePdfTool());
+
+    // Table and List tools
+    _registry.registerTool(TableToPdfTool());
+    _registry.registerTool(ListToPdfTool());
+    _registry.registerTool(ParagraphToPdfTool());
+
+    // Navigation and Interactive tools
+    _registry.registerTool(HyperlinkPdfTool());
+    _registry.registerTool(BookmarkPdfTool());
+    _registry.registerTool(CreateBookmarkedPdfTool());
+
+    // Security tools
+    _registry.registerTool(EncryptPdfTool());
+    _registry.registerTool(DecryptPdfTool());
+    _registry.registerTool(SignaturePdfTool());
+    _registry.registerTool(CreateSignedPdfTool());
+    _registry.registerTool(VerifySignaturePdfTool());
+
+    // PDF/A Conformance tools
+    _registry.registerTool(PdfAConformanceTool());
+    _registry.registerTool(ConvertToPdfATool());
   }
 
   /// Get the tools registry

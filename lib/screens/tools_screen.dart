@@ -77,6 +77,42 @@ class _ToolsScreenState extends State<ToolsScreen> {
       case 'Icons.auto_awesome':
         iconData = Icons.auto_awesome;
         break;
+      case 'Icons.format_list_bulleted':
+        iconData = Icons.format_list_bulleted;
+        break;
+      case 'Icons.table_chart':
+        iconData = Icons.table_chart;
+        break;
+      case 'Icons.view_headline':
+        iconData = Icons.view_headline;
+        break;
+      case 'Icons.crop_square':
+        iconData = Icons.crop_square;
+        break;
+      case 'Icons.format_textdirection_r_to_l':
+        iconData = Icons.format_textdirection_r_to_l;
+        break;
+      case 'Icons.link':
+        iconData = Icons.link;
+        break;
+      case 'Icons.bookmark':
+        iconData = Icons.bookmark;
+        break;
+      case 'Icons.attach_file':
+        iconData = Icons.attach_file;
+        break;
+      case 'Icons.lock':
+        iconData = Icons.lock;
+        break;
+      case 'Icons.lock_open':
+        iconData = Icons.lock_open;
+        break;
+      case 'Icons.verified':
+        iconData = Icons.verified;
+        break;
+      case 'Icons.draw':
+        iconData = Icons.draw;
+        break;
       default:
         iconData = Icons.build;
     }
@@ -161,6 +197,42 @@ class _ToolsScreenState extends State<ToolsScreen> {
         break;
       case 'summarize_pdf':
         await _openSummarizePdfTool(tool);
+        break;
+      case 'bullets_lists':
+        await _openBulletsListTool(tool);
+        break;
+      case 'table_pdf':
+        await _openTablePdfTool(tool);
+        break;
+      case 'header_footer':
+        await _openHeaderFooterTool(tool);
+        break;
+      case 'shapes_pdf':
+        await _openShapesTool(tool);
+        break;
+      case 'rtl_text':
+        await _openRtlTextTool(tool);
+        break;
+      case 'hyperlink_pdf':
+        await _openHyperlinkTool(tool);
+        break;
+      case 'bookmark_pdf':
+        await _openBookmarkTool(tool);
+        break;
+      case 'attachment_pdf':
+        await _openAttachmentTool(tool);
+        break;
+      case 'encrypt_pdf':
+        await _openEncryptTool(tool);
+        break;
+      case 'decrypt_pdf':
+        await _openDecryptTool(tool);
+        break;
+      case 'conformance_pdf':
+        await _openConformanceTool(tool);
+        break;
+      case 'digital_signature':
+        await _openDigitalSignatureTool(tool);
         break;
       default:
         if (mounted) {
@@ -351,6 +423,851 @@ class _ToolsScreenState extends State<ToolsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Annotation tool - Coming soon')),
       );
+    }
+  }
+
+  Future<void> _openBulletsListTool(PdfTool tool) async {
+    final TextEditingController itemsController = TextEditingController();
+    bool ordered = true;
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Create Bullets & Lists'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Ordered list'),
+                value: ordered,
+                onChanged: (value) => setState(() => ordered = value),
+              ),
+              TextField(
+                controller: itemsController,
+                decoration: const InputDecoration(
+                  labelText: 'Items (one per line)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 6,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'items': itemsController.text,
+                  'ordered': ordered,
+                });
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openTablePdfTool(PdfTool tool) async {
+    final TextEditingController tableController = TextEditingController();
+    bool hasHeader = true;
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Create Table PDF'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('First row is header'),
+                value: hasHeader,
+                onChanged: (value) => setState(() => hasHeader = value),
+              ),
+              TextField(
+                controller: tableController,
+                decoration: const InputDecoration(
+                  labelText: 'CSV rows (comma-separated)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 6,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'tableData': tableController.text,
+                  'hasHeader': hasHeader,
+                });
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openHeaderFooterTool(PdfTool tool) async {
+    final TextEditingController headerController = TextEditingController();
+    final TextEditingController footerController = TextEditingController();
+    final TextEditingController bodyController = TextEditingController();
+    final TextEditingController pageCountController = TextEditingController(text: '1');
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Header & Footer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: headerController,
+              decoration: const InputDecoration(
+                labelText: 'Header text',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: footerController,
+              decoration: const InputDecoration(
+                labelText: 'Footer text',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: bodyController,
+              decoration: const InputDecoration(
+                labelText: 'Body text (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 4,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pageCountController,
+              decoration: const InputDecoration(
+                labelText: 'Page count',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final int pageCount = int.tryParse(pageCountController.text) ?? 1;
+              Navigator.pop(context, {
+                'headerText': headerController.text,
+                'footerText': footerController.text,
+                'bodyText': bodyController.text,
+                'pageCount': pageCount,
+              });
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openShapesTool(PdfTool tool) async {
+    String shapeType = 'all';
+    const List<String> options = <String>['all', 'rectangle', 'ellipse', 'line', 'polygon'];
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Draw Shapes'),
+          content: DropdownButtonFormField<String>(
+            value: shapeType,
+            items: options
+                .map((value) => DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    ))
+                .toList(),
+            onChanged: (value) => setState(() => shapeType = value ?? 'all'),
+            decoration: const InputDecoration(
+              labelText: 'Shape type',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {'shapeType': shapeType});
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openRtlTextTool(PdfTool tool) async {
+    final TextEditingController titleController = TextEditingController();
+    final TextEditingController textController = TextEditingController();
+    bool isRtl = true;
+    Uint8List? fontData;
+    String fontName = 'No font selected';
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('RTL / Unicode Text'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Right-to-left'),
+                value: isRtl,
+                onChanged: (value) => setState(() => isRtl = value),
+              ),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                decoration: const InputDecoration(
+                  labelText: 'Text',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 5,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fontName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      FilePickerResult? pick = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['ttf', 'otf'],
+                      );
+                      if (pick != null && pick.files.single.path != null) {
+                        final file = File(pick.files.single.path!);
+                        final data = await file.readAsBytes();
+                        setState(() {
+                          fontData = data;
+                          fontName = pick.files.single.name;
+                        });
+                      }
+                    },
+                    child: const Text('Pick font'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'title': titleController.text,
+                  'text': textController.text,
+                  'isRtl': isRtl,
+                  'fontData': fontData,
+                });
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openHyperlinkTool(PdfTool tool) async {
+    final TextEditingController urlController = TextEditingController();
+    final TextEditingController textController = TextEditingController();
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Hyperlink'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                labelText: 'URL',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
+                labelText: 'Link text (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'url': urlController.text,
+                'text': textController.text,
+              });
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openBookmarkTool(PdfTool tool) async {
+    try {
+      FilePickerResult? pick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (pick == null || !mounted) return;
+      final file = File(pick.files.single.path!);
+      final Uint8List pdfData = await file.readAsBytes();
+
+      final TextEditingController titleController = TextEditingController();
+      final TextEditingController pageController = TextEditingController(text: '1');
+
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Add Bookmark'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Bookmark title',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: pageController,
+                decoration: const InputDecoration(
+                  labelText: 'Page number',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final int pageNumber = int.tryParse(pageController.text) ?? 1;
+                Navigator.pop(context, {
+                  'pdfData': pdfData,
+                  'title': titleController.text,
+                  'pageNumber': pageNumber,
+                });
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != null && mounted) {
+        await _executeToolAndShowResult(tool, result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openAttachmentTool(PdfTool tool) async {
+    try {
+      FilePickerResult? pdfPick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (pdfPick == null || !mounted) return;
+      final Uint8List pdfData = await File(pdfPick.files.single.path!).readAsBytes();
+
+      FilePickerResult? attachmentPick = await FilePicker.platform.pickFiles();
+      if (attachmentPick == null || !mounted) return;
+
+      final attachedFile = File(attachmentPick.files.single.path!);
+      final Uint8List attachmentData = await attachedFile.readAsBytes();
+
+      final TextEditingController descController = TextEditingController();
+
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Add Attachment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('File: ${attachmentPick.files.single.name}'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'pdfData': pdfData,
+                  'attachmentData': attachmentData,
+                  'fileName': attachmentPick.files.single.name,
+                  'description': descController.text,
+                });
+              },
+              child: const Text('Attach'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != null && mounted) {
+        await _executeToolAndShowResult(tool, result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openEncryptTool(PdfTool tool) async {
+    try {
+      FilePickerResult? pick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (pick == null || !mounted) return;
+      final Uint8List pdfData = await File(pick.files.single.path!).readAsBytes();
+
+      final TextEditingController userController = TextEditingController();
+      final TextEditingController ownerController = TextEditingController();
+      String algorithm = 'aes256';
+
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Encrypt PDF'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: userController,
+                  decoration: const InputDecoration(
+                    labelText: 'User password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ownerController,
+                  decoration: const InputDecoration(
+                    labelText: 'Owner password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: algorithm,
+                  items: const [
+                    DropdownMenuItem(value: 'aes256', child: Text('AES-256')),
+                    DropdownMenuItem(value: 'aes256_rev6', child: Text('AES-256 Rev6')),
+                    DropdownMenuItem(value: 'aes128', child: Text('AES-128')),
+                    DropdownMenuItem(value: 'rc4_128', child: Text('RC4-128')),
+                    DropdownMenuItem(value: 'rc4_40', child: Text('RC4-40')),
+                  ],
+                  onChanged: (value) => setState(() => algorithm = value ?? 'aes256'),
+                  decoration: const InputDecoration(
+                    labelText: 'Algorithm',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, {
+                    'pdfData': pdfData,
+                    'userPassword': userController.text,
+                    'ownerPassword': ownerController.text,
+                    'algorithm': algorithm,
+                  });
+                },
+                child: const Text('Encrypt'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+        await _executeToolAndShowResult(tool, result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openDecryptTool(PdfTool tool) async {
+    try {
+      FilePickerResult? pick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (pick == null || !mounted) return;
+      final Uint8List pdfData = await File(pick.files.single.path!).readAsBytes();
+
+      final TextEditingController passwordController = TextEditingController();
+
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Decrypt PDF'),
+          content: TextField(
+            controller: passwordController,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              border: OutlineInputBorder(),
+            ),
+            obscureText: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'pdfData': pdfData,
+                  'password': passwordController.text,
+                });
+              },
+              child: const Text('Decrypt'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != null && mounted) {
+        await _executeToolAndShowResult(tool, result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openConformanceTool(PdfTool tool) async {
+    final TextEditingController textController = TextEditingController();
+    String level = 'a1b';
+    Uint8List? fontData;
+    String fontName = 'No font selected';
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('PDF/A Conformance'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: level,
+                items: const [
+                  DropdownMenuItem(value: 'a1b', child: Text('PDF/A-1B')),
+                  DropdownMenuItem(value: 'a2b', child: Text('PDF/A-2B')),
+                  DropdownMenuItem(value: 'a3b', child: Text('PDF/A-3B')),
+                ],
+                onChanged: (value) => setState(() => level = value ?? 'a1b'),
+                decoration: const InputDecoration(
+                  labelText: 'Conformance level',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                decoration: const InputDecoration(
+                  labelText: 'Text',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fontName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      FilePickerResult? pick = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['ttf', 'otf'],
+                      );
+                      if (pick != null && pick.files.single.path != null) {
+                        final data = await File(pick.files.single.path!).readAsBytes();
+                        setState(() {
+                          fontData = data;
+                          fontName = pick.files.single.name;
+                        });
+                      }
+                    },
+                    child: const Text('Pick font'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'conformanceLevel': level,
+                  'text': textController.text,
+                  'fontData': fontData,
+                });
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openDigitalSignatureTool(PdfTool tool) async {
+    if (!mounted) return;
+
+    final bool? useExisting = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign PDF'),
+        content: const Text('Do you want to sign an existing PDF?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Create New'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Use Existing'),
+          ),
+        ],
+      ),
+    );
+
+    if (useExisting == null || !mounted) return;
+
+    Uint8List? pdfData;
+    if (useExisting) {
+      FilePickerResult? pdfPick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (pdfPick == null || !mounted) return;
+      pdfData = await File(pdfPick.files.single.path!).readAsBytes();
+    }
+
+    FilePickerResult? pfxPick = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pfx'],
+    );
+
+    if (pfxPick == null || !mounted) return;
+    final Uint8List pfxData = await File(pfxPick.files.single.path!).readAsBytes();
+
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController reasonController = TextEditingController();
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Certificate Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Certificate: ${pfxPick.files.single.name}'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Certificate password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'pdfData': pdfData,
+                'pfxData': pfxData,
+                'password': passwordController.text,
+                'reason': reasonController.text,
+              });
+            },
+            child: const Text('Sign'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
     }
   }
 
