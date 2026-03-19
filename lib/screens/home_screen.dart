@@ -4,6 +4,7 @@ import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
 import 'tools_screen.dart';
 import 'llm_chat_screen.dart';
+import 'document_scanner_screen.dart';
 import '../services/analytics_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -87,6 +88,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _openScannerScreen() async {
+    _analytics.logEvent(name: 'open_document_scanner');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DocumentScannerScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,6 +146,18 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.add_circle_outline),
               label: const Text('Create New PDF'),
               style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _openScannerScreen,
+              icon: const Icon(Icons.document_scanner),
+              label: const Text('Scan Document'),
+              style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
