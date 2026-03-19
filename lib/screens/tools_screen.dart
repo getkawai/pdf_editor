@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../tools/tools.dart';
+import '../services/analytics_service.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -14,6 +15,7 @@ class ToolsScreen extends StatefulWidget {
 class _ToolsScreenState extends State<ToolsScreen> {
   late List<PdfTool> _tools;
   bool _isLoading = true;
+  final AnalyticsService _analytics = AnalyticsService();
 
   @override
   void initState() {
@@ -135,6 +137,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Future<void> _openTool(PdfTool tool) async {
+    // Log tool selection
+    _analytics.logUsePdfTool(toolName: tool.id);
+    
     switch (tool.id) {
       case 'text_to_pdf':
         await _openTextToPdfTool(tool);
@@ -377,12 +382,25 @@ class _ToolsScreenState extends State<ToolsScreen> {
               backgroundColor: Colors.green,
             ),
           );
+          
+          // Log success
+          _analytics.logUsePdfTool(
+            toolName: tool.id,
+            result: 'success',
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error: ${result.errorMessage}'),
               backgroundColor: Colors.red,
             ),
+          );
+          
+          // Log error
+          _analytics.logError(
+            errorType: 'tool_execution_error',
+            errorMessage: result.errorMessage ?? 'Unknown error',
+            screen: 'tools',
           );
         }
       }
@@ -394,6 +412,13 @@ class _ToolsScreenState extends State<ToolsScreen> {
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
+        );
+        
+        // Log error
+        _analytics.logError(
+          errorType: 'tool_exception',
+          errorMessage: e.toString(),
+          screen: 'tools',
         );
       }
     }

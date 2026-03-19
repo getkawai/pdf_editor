@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../llm/llm.dart';
+import '../services/analytics_service.dart';
 
 /// Screen for interacting with LLM chat
 class LlmChatScreen extends StatefulWidget {
@@ -13,7 +14,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final LlmService _llmService = LlmService();
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _modelPathController = TextEditingController();
-  
+  final AnalyticsService _analytics = AnalyticsService();
+
   final List<Map<String, String>> _messages = [];
   final List<LlmFunctionTool> _functionGemmaTools = const [
     LlmFunctionTool(
@@ -25,6 +27,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   bool _isModelLoaded = false;
   bool _isLoading = false;
   String? _selectedModel;
+  DateTime? _requestStartTime;
 
   @override
   void initState() {
@@ -95,7 +98,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     _promptController.clear();
 
+    // Log user message
+    _analytics.logAiMessage(
+      messageType: 'user',
+      messageLength: userMessage.length,
+      model: _selectedModel,
+    );
+
     try {
+      _requestStartTime = DateTime.now();
+      
       final request = LlmGenerationRequest(
         prompt: userMessage,
         temperature: 0.7,
@@ -105,6 +117,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       );
 
       final response = await _llmService.generate(request);
+
+      // Log AI response
+      final latency = _requestStartTime != null
+          ? DateTime.now().difference(_requestStartTime!)
+          : Duration.zero;
+      
+      _analytics.logAiResponse(
+        responseLength: response.content.length,
+        latency: latency,
+        model: _selectedModel,
+      );
 
       if (mounted) {
         setState(() {
@@ -116,6 +139,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               'role': 'assistant',
               'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
             });
+            
+            // Log error
+            _analytics.logError(
+              errorType: 'llm_generation_error',
+              errorMessage: response.errorMessage ?? 'Unknown error',
+              screen: 'llm_chat',
+            );
           }
         });
       }
@@ -124,6 +154,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
+        );
+        
+        // Log error
+        _analytics.logError(
+          errorType: 'llm_exception',
+          errorMessage: e.toString(),
+          screen: 'llm_chat',
         );
       }
     }

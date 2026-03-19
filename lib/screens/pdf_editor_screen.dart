@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import '../services/analytics_service.dart';
 
 class PdfEditorScreen extends StatefulWidget {
   const PdfEditorScreen({super.key});
@@ -15,8 +16,9 @@ class PdfEditorScreen extends StatefulWidget {
 class _PdfEditorScreenState extends State<PdfEditorScreen> {
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  
+
   String? _selectedImagePath;
+  final AnalyticsService _analytics = AnalyticsService();
 
   @override
   void dispose() {
@@ -36,11 +38,21 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
           _selectedImagePath = result.files.single.path!;
         });
         _showAddImageDialog();
+        
+        // Log analytics
+        _analytics.logEditPdf(editType: 'add_image');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error picking image: $e')),
+        );
+        
+        // Log error
+        _analytics.logError(
+          errorType: 'image_picker_error',
+          errorMessage: e.toString(),
+          screen: 'pdf_editor',
         );
       }
     }
@@ -56,14 +68,14 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       final PdfDocument document = PdfDocument();
       final PdfPage page = document.pages.add();
       final PdfGraphics graphics = page.graphics;
-      
+
       double yOffset = 50;
 
       // Add title if provided
       if (_titleController.text.isNotEmpty) {
         final PdfFont titleFont = PdfStandardFont(
-          PdfFontFamily.helvetica, 
-          24, 
+          PdfFontFamily.helvetica,
+          24,
           style: PdfFontStyle.bold,
         );
         graphics.drawString(
@@ -90,10 +102,10 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
         final File imageFile = File(imagePath);
         final Uint8List imageBytes = await imageFile.readAsBytes();
         final PdfImage pdfImage = PdfBitmap(imageBytes);
-        
+
         final double imageWidth = 200;
         final double imageHeight = (pdfImage.height * imageWidth) / pdfImage.width;
-        
+
         graphics.drawImage(
           pdfImage,
           Rect.fromLTWH(50, yOffset, imageWidth, imageHeight),
@@ -106,7 +118,7 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
         final PdfImage signatureImage = PdfBitmap(signatureData);
         final double signatureWidth = 200;
         final double signatureHeight = (signatureImage.height * signatureWidth) / signatureImage.width;
-        
+
         graphics.drawImage(
           signatureImage,
           Rect.fromLTWH(50, yOffset, signatureWidth, signatureHeight),
@@ -116,13 +128,23 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       // Save the document
       final Directory? appDir = await getApplicationDocumentsDirectory();
       final String dirPath = appDir!.path;
-      final String fileName = _titleController.text.isEmpty 
+      final String fileName = _titleController.text.isEmpty
           ? 'document_${DateTime.now().millisecondsSinceEpoch}.pdf'
           : '${_titleController.text.replaceAll(' ', '_')}.pdf';
-      
+
       final File file = File('$dirPath/$fileName');
       await file.writeAsBytes(await document.save());
       document.dispose();
+
+      // Log analytics
+      _analytics.logSavePdf(
+        documentId: fileName,
+        pageCount: 1,
+      );
+      _analytics.logEditPdf(
+        editType: text != null ? 'add_text' : imagePath != null ? 'add_image' : 'create',
+        details: 'title: ${_titleController.text.isNotEmpty ? 'yes' : 'no'}',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -135,6 +157,13 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error creating PDF: $e')),
+        );
+        
+        // Log error
+        _analytics.logError(
+          errorType: 'pdf_creation_error',
+          errorMessage: e.toString(),
+          screen: 'pdf_editor',
         );
       }
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'dart:io';
+import '../services/analytics_service.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String filePath;
@@ -15,6 +16,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late PdfViewerController _pdfViewerController;
   int _currentPage = 1;
   int _totalPages = 0;
+  final AnalyticsService _analytics = AnalyticsService();
+  bool _hasLoggedView = false;
 
   @override
   void initState() {
@@ -80,6 +83,15 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 setState(() {
                   _totalPages = _pdfViewerController.pageCount;
                 });
+                
+                // Log PDF view event
+                if (!_hasLoggedView) {
+                  _analytics.logViewPdf(
+                    documentId: widget.filePath.split('/').last,
+                    pageCount: _totalPages,
+                  );
+                  _hasLoggedView = true;
+                }
               },
               onPageChanged: (PdfPageChangedDetails details) {
                 setState(() {

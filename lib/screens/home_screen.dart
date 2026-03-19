@@ -4,6 +4,7 @@ import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
 import 'tools_screen.dart';
 import 'llm_chat_screen.dart';
+import '../services/analytics_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _recentFilePath;
+  final AnalyticsService _analytics = AnalyticsService();
 
   Future<void> _pickAndOpenPDF() async {
     try {
@@ -26,6 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _recentFilePath = result.files.single.path!;
         });
+        
+        // Log analytics
+        _analytics.logOpenPdf(source: 'file_picker');
+        
         if (mounted) {
           Navigator.push(
             context,
@@ -40,11 +46,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error opening PDF: $e')),
         );
+        
+        // Log error
+        _analytics.logError(
+          errorType: 'file_picker_error',
+          errorMessage: e.toString(),
+          screen: 'home',
+        );
       }
     }
   }
 
   Future<void> _createNewPDF() async {
+    // Log analytics
+    _analytics.logCreatePdf();
+    
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PdfEditorScreen()),
@@ -52,6 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openToolsScreen() async {
+    // Log analytics
+    _analytics.logEvent(name: 'open_tools_screen');
+    
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ToolsScreen()),
@@ -59,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openLlmChatScreen() async {
+    // Log analytics
+    _analytics.logOpenAiChat();
+    
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LlmChatScreen()),
