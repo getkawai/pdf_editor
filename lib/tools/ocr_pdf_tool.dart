@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'pdf_tool.dart';
 
 /// Tool for performing OCR on images and creating searchable PDFs
@@ -58,7 +57,18 @@ class OcropdfTool implements PdfTool {
       final Uint8List grayBytes = Uint8List.fromList(img.encodePng(grayImage));
 
       // Create input image for ML Kit
-      final InputImage inputImage = InputImage.fromBytes(bytes: grayBytes);
+      final InputImage inputImage = InputImage.fromBytes(
+        bytes: grayBytes,
+        metadata: InputImageMetadata(
+          size: ui.Size(
+            grayImage.width.toDouble(),
+            grayImage.height.toDouble(),
+          ),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.bgra8888,
+          bytesPerRow: 0,
+        ),
+      );
 
       // Recognize text
       final RecognizedText recognizedText = await textRecognizer.processImage(
@@ -73,8 +83,8 @@ class OcropdfTool implements PdfTool {
 
       // Create PDF with text layer
       final PdfDocument document = PdfDocument();
-      final PdfPage page = document.pages.add();
-      final PdfGraphics graphics = page.graphics;
+      PdfPage page = document.pages.add();
+      PdfGraphics graphics = page.graphics;
 
       // Add title
       double yOffset = 50;
@@ -112,23 +122,19 @@ class OcropdfTool implements PdfTool {
         );
 
         for (String line in lines) {
+          // Check if we need a new page
           if (yOffset + lineHeight > page.getClientSize().height - 50) {
-            // Add new page if needed
-            final PdfPage newPage = document.pages.add();
-            graphics.drawString(
-              line,
-              textFont,
-              bounds: ui.Rect.fromLTWH(50, yOffset, availableWidth, lineHeight),
-            );
-            yOffset = 50 + lineHeight;
-          } else {
-            graphics.drawString(
-              line,
-              textFont,
-              bounds: ui.Rect.fromLTWH(50, yOffset, availableWidth, lineHeight),
-            );
-            yOffset += lineHeight;
+            // Add new page
+            page = document.pages.add();
+            graphics = page.graphics;
+            yOffset = 50; // reset yOffset for the new page
           }
+          graphics.drawString(
+            line,
+            textFont,
+            bounds: ui.Rect.fromLTWH(50, yOffset, availableWidth, lineHeight),
+          );
+          yOffset += lineHeight;
         }
       } else {
         // No text found, add placeholder

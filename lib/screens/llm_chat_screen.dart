@@ -20,7 +20,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final List<LlmFunctionTool> _functionGemmaTools = const [
     LlmFunctionTool(
       name: 'get_today_date',
-      description: 'Gets today\'s date',
+      description: 'Gets today\'s date. Use this when the user needs the current date or calendar info.',
       parameters: {},
     ),
   ];
@@ -107,6 +107,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       
       final request = LlmGenerationRequest(
         prompt: userMessage,
+        systemPrompt: 'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help manage the calendar and get the current date using the provided tools. Do NOT refuse to answer simple conversational questions.',
         temperature: 0.7,
         maxTokens: 512,
         enableFunctionCalling: true,
