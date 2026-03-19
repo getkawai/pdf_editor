@@ -12,9 +12,13 @@ A centralized singleton service that provides a clean API for logging events thr
 
 **Key Features:**
 - Singleton pattern for easy access
+- **Safe initialization**: Works even before Firebase is initialized (gracefully skips logging)
 - Type-safe event logging
 - Automatic debug logging in development mode
 - Error handling to prevent analytics failures from affecting app functionality
+- Availability check via `isAvailable` getter
+
+**Important:** The service safely handles cases where Firebase is not yet initialized (e.g., during tests or early app startup). Events logged before Firebase initialization are silently skipped.
 
 ## Tracked Events
 

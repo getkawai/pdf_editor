@@ -262,7 +262,8 @@ class AnalyticsService {
 
   /// Set user ID for cross-device tracking.
   Future<void> setUserId(String? userId) async {
-    await _analytics.setUserId(id: userId);
+    if (!isAvailable) return;
+    await _analytics!.setUserId(id: userId);
   }
 
   /// Set a user property for segmentation.
@@ -270,16 +271,13 @@ class AnalyticsService {
     required String name,
     String? value,
   }) async {
-    await _analytics.setUserProperty(name: name, value: value);
+    if (!isAvailable) return;
+    await _analytics!.setUserProperty(name: name, value: value);
   }
 
   /// Set whether analytics collection is enabled.
   Future<void> setAnalyticsCollectionEnabled(bool enabled) async {
-    await _analytics.setAnalyticsCollectionEnabled(enabled);
-  }
-
-  /// Get current analytics session ID (if available).
-  Future<int?> getSessionId() async {
-    return _analytics.getSessionId();
+    if (!isAvailable) return;
+    await _analytics!.setAnalyticsCollectionEnabled(enabled);
   }
 }
