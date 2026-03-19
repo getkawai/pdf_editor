@@ -51,7 +51,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   Widget _buildToolCard(PdfTool tool) {
     IconData iconData;
-    
+
     // Map icon name string to actual IconData
     switch (tool.iconName) {
       case 'Icons.text_fields':
@@ -68,6 +68,12 @@ class _ToolsScreenState extends State<ToolsScreen> {
         break;
       case 'Icons.edit_note':
         iconData = Icons.edit_note;
+        break;
+      case 'Icons.smart_toy':
+        iconData = Icons.smart_toy;
+        break;
+      case 'Icons.auto_awesome':
+        iconData = Icons.auto_awesome;
         break;
       default:
         iconData = Icons.build;
@@ -144,6 +150,12 @@ class _ToolsScreenState extends State<ToolsScreen> {
         break;
       case 'annotate_pdf':
         await _openAnnotatePdfTool(tool);
+        break;
+      case 'ai_pdf_assistant':
+        await _openAiPdfAssistantTool(tool);
+        break;
+      case 'summarize_pdf':
+        await _openSummarizePdfTool(tool);
         break;
       default:
         if (mounted) {
@@ -354,7 +366,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     try {
       final result = await ToolsManager().executeTool(tool.id, parameters);
-      
+
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
@@ -382,6 +394,117 @@ class _ToolsScreenState extends State<ToolsScreen> {
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openAiPdfAssistantTool(PdfTool tool) async {
+    final TextEditingController promptController = TextEditingController();
+    final TextEditingController titleController = TextEditingController();
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('AI PDF Assistant'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter a prompt to generate PDF content using AI.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Title (Optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: promptController,
+              decoration: const InputDecoration(
+                labelText: 'Prompt',
+                hintText: 'e.g., Write an article about climate change',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 5,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'title': titleController.text,
+                'prompt': promptController.text,
+              });
+            },
+            child: const Text('Generate'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      await _executeToolAndShowResult(tool, result);
+    }
+  }
+
+  Future<void> _openSummarizePdfTool(PdfTool tool) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null && mounted) {
+        final file = File(result.files.single.path!);
+        final pdfData = await file.readAsBytes();
+
+        final summaryType = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Summary Type'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Brief'),
+                  onTap: () => Navigator.pop(context, 'brief'),
+                ),
+                ListTile(
+                  title: const Text('Detailed'),
+                  onTap: () => Navigator.pop(context, 'detailed'),
+                ),
+                ListTile(
+                  title: const Text('Bullet Points'),
+                  onTap: () => Navigator.pop(context, 'bullet points'),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        if (summaryType != null) {
+          await _executeToolAndShowResult(tool, {
+            'pdfData': pdfData,
+            'summaryType': summaryType,
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }

@@ -5,6 +5,7 @@ import 'image_to_pdf_tool.dart';
 import 'merge_pdfs_tool.dart';
 import 'compress_pdf_tool.dart';
 import 'annotate_pdf_tool.dart';
+import 'ai_pdf_tools.dart';
 
 /// Manager for initializing and accessing PDF tools
 class ToolsManager {
@@ -28,6 +29,8 @@ class ToolsManager {
     _registry.registerTool(MergePdfsTool());
     _registry.registerTool(CompressPdfTool());
     _registry.registerTool(AnnotatePdfTool());
+    _registry.registerTool(AiPdfAssistantTool());
+    _registry.registerTool(SummarizePdfTool());
   }
 
   /// Get the tools registry

@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
 import 'tools_screen.dart';
+import 'llm_chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,6 +55,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ToolsScreen()),
+    );
+  }
+
+  Future<void> _openLlmChatScreen() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LlmChatScreen()),
     );
   }
 
@@ -118,6 +126,18 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _openToolsScreen,
               icon: const Icon(Icons.build),
               label: const Text('PDF Tools'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _openLlmChatScreen,
+              icon: const Icon(Icons.smart_toy),
+              label: const Text('AI Chat'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,

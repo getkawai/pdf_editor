@@ -1,6 +1,6 @@
 # PDF Editor
 
-A Flutter application for viewing, creating, and editing PDF documents on iOS and Android.
+A Flutter application for viewing, creating, and editing PDF documents on iOS and Android, with AI-powered features using local LLM inference.
 
 ## Package ID
 
@@ -9,16 +9,24 @@ A Flutter application for viewing, creating, and editing PDF documents on iOS an
 
 ## Features
 
+### PDF Tools
 - **View PDFs**: Open and view PDF documents with page navigation
 - **Create PDFs from Text**: Create new PDF documents with custom text content
 - **Create PDFs from Images**: Convert images to PDF documents
-- **Page Navigation**: Jump to specific pages, navigate next/previous
-- **Text Selection**: Select and copy text from PDF documents
+- **Merge PDFs**: Combine multiple PDF documents into one
+- **Compress PDF**: Reduce PDF file size
+- **Annotate PDF**: Add text, highlights, and shapes to PDFs
+
+### AI Features (Powered by LlamaDart)
+- **AI Chat**: Chat with local LLM models (GGUF format)
+- **AI PDF Assistant**: Generate PDF content using AI prompts
+- **Summarize PDF**: Generate AI summaries of PDF documents
 
 ## Dependencies
 
 - `syncfusion_flutter_pdf` - PDF creation and manipulation
 - `syncfusion_flutter_pdfviewer` - PDF viewing
+- `llamadart` - Local LLM inference with llama.cpp
 - `file_picker` - File selection for PDFs and images
 - `path_provider` - Document storage location
 - `permission_handler` - Permission management
@@ -65,10 +73,28 @@ flutter build ios --release
 ```
 lib/
 ├── main.dart                    # App entry point
+├── llm/                         # LLM service and models
+│   ├── llm.dart
+│   ├── llm_service.dart
+│   └── llm_models.dart
+├── tools/                       # PDF tools system
+│   ├── tools.dart
+│   ├── pdf_tool.dart
+│   ├── tools_manager.dart
+│   ├── tools_registry.dart
+│   ├── text_to_pdf_tool.dart
+│   ├── image_to_pdf_tool.dart
+│   ├── merge_pdfs_tool.dart
+│   ├── compress_pdf_tool.dart
+│   ├── annotate_pdf_tool.dart
+│   └── ai_pdf_tools.dart
 └── screens/
     ├── home_screen.dart         # Home screen with navigation
     ├── pdf_viewer_screen.dart   # PDF viewer screen
-    └── pdf_editor_screen.dart   # PDF creation screen
+    ├── pdf_editor_screen.dart   # PDF creation screen
+    ├── tools_screen.dart        # PDF tools browser
+    ├── llm_chat_screen.dart     # AI chat screen
+    └── ...
 ```
 
 ## Platform Configuration
@@ -107,14 +133,38 @@ Permissions added to `Info.plist`:
    - **Add Signature**: Draw a signature (placeholder)
 4. The PDF will be saved to your device's documents folder
 
+### Using AI Features
+
+1. **Download a GGUF model** (see [LLM_SETUP.md](LLM_SETUP.md) for recommended models)
+2. Launch the app and tap "AI Chat"
+3. Enter the path to your `.gguf` model file
+4. Tap "Load Model"
+5. Start chatting or use AI PDF tools from the Tools screen
+
+## LLM Setup
+
+For detailed instructions on setting up and using the LLM features, see [LLM_SETUP.md](LLM_SETUP.md).
+
+**Quick Start:**
+1. Download TinyLlama 1.1B GGUF model (~638MB)
+2. Store it on your device
+3. Load it in the AI Chat screen
+4. Start generating content!
+
 ## License
 
-This project uses Syncfusion Flutter PDF libraries which require either:
-- A Syncfusion commercial license, or
-- A Free Syncfusion Community License
+This project uses:
+- **Syncfusion Flutter PDF** - Requires commercial or community license
+- **LlamaDart** - MIT License
 
-See [Syncfusion License](https://www.syncfusion.com/sales/license) for details.
+See [Syncfusion License](https://www.syncfusion.com/sales/license) and [LlamaDart License](https://github.com/leehack/llamadart/blob/main/LICENSE) for details.
 
 ## Support
 
 For issues or feature requests, please file an issue in the repository.
+
+## Acknowledgments
+
+- [LlamaDart](https://github.com/leehack/llamadart) for local LLM inference
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) for the underlying C++ library
+- [Syncfusion](https://www.syncfusion.com/) for PDF libraries
