@@ -24,8 +24,6 @@ Future<void> main() async {
     },
     appRunner: () => runApp(SentryWidget(child: const PdfEditorApp())),
   );
-  // TODO: Remove this line after sending the first sample event to sentry.
-  await Sentry.captureException(StateError('This is a sample exception.'));
 }
 
 class PdfEditorApp extends StatelessWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// No-op analytics service (Firebase removed).
 ///
@@ -13,7 +14,7 @@ class AnalyticsService {
     return _instance;
   }
 
-  bool get isAvailable => false;
+  bool get isAvailable => true;
 
   // ============================================================================
   // GENERAL EVENTS
@@ -23,8 +24,22 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
-    if (kDebugMode) {
-      debugPrint('📊 Analytics (noop): $name, params: $parameters');
+    try {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: name,
+          category: 'event',
+          data: parameters,
+          level: SentryLevel.info,
+        ),
+      );
+      if (kDebugMode) {
+        debugPrint('📊 Event: $name, params: $parameters');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Sentry breadcrumb error: $e');
+      }
     }
   }
 
@@ -36,8 +51,24 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
-    if (kDebugMode) {
-      debugPrint('📱 Screen View (noop): $screenName');
+    try {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: screenName,
+          category: 'screen',
+          data: {
+            'screen_class': screenClass ?? screenName,
+          },
+          level: SentryLevel.info,
+        ),
+      );
+      if (kDebugMode) {
+        debugPrint('📱 Screen View: $screenName');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Sentry breadcrumb error: $e');
+      }
     }
   }
 
@@ -139,16 +170,25 @@ class AnalyticsService {
     Object? exception,
     StackTrace? stackTrace,
   }) async {
-    await logEvent(
-      name: 'error',
-      parameters: {
-        'error_type': errorType,
-        'error_message': errorMessage,
-        if (screen != null) 'screen': screen,
-      },
-    );
-    if (kDebugMode) {
-      debugPrint('❌ Error (noop): $errorType $errorMessage');
+    try {
+      await Sentry.captureException(
+        exception ?? errorMessage,
+        stackTrace: stackTrace,
+        withScope: (scope) {
+          scope.setTag('error_type', errorType);
+          if (screen != null) {
+            scope.setTag('screen', screen);
+          }
+          scope.setExtra('error_message', errorMessage);
+        },
+      );
+      if (kDebugMode) {
+        debugPrint('❌ Error: $errorType $errorMessage');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Sentry error: $e');
+      }
     }
   }
 
@@ -157,8 +197,17 @@ class AnalyticsService {
   // ============================================================================
 
   Future<void> setUserId(String? userId) async {
-    if (kDebugMode) {
-      debugPrint('👤 setUserId (noop): $userId');
+    try {
+      Sentry.configureScope((scope) {
+        scope.setUser(userId != null ? SentryUser(id: userId) : null);
+      });
+      if (kDebugMode) {
+        debugPrint('👤 setUserId: $userId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Sentry user error: $e');
+      }
     }
   }
 
@@ -166,14 +215,23 @@ class AnalyticsService {
     required String name,
     String? value,
   }) async {
-    if (kDebugMode) {
-      debugPrint('🏷️ setUserProperty (noop): $name=$value');
+    try {
+      Sentry.configureScope((scope) {
+        scope.setTag(name, value ?? '');
+      });
+      if (kDebugMode) {
+        debugPrint('🏷️ setUserProperty: $name=$value');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Sentry tag error: $e');
+      }
     }
   }
 
   Future<void> setAnalyticsCollectionEnabled(bool enabled) async {
     if (kDebugMode) {
-      debugPrint('⚙️ setAnalyticsCollectionEnabled (noop): $enabled');
+      debugPrint('⚙️ Analytics collection flag ignored (Sentry): $enabled');
     }
   }
 }
