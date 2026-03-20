@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cactus/cactus.dart';
 import 'package:flutter/foundation.dart';
 import 'llm_models.dart';
+import '../services/analytics_service.dart';
 
 /// Service for managing LLM inference using Cactus
 class LlmService {
@@ -263,6 +264,20 @@ class LlmService {
         duration: stopwatch.elapsed,
       );
     } catch (e) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_failure',
+        errorMessage: e.toString(),
+        screen: 'llm_service',
+        metadata: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'context_size': _currentContextSize ?? -1,
+          'tools_count': params.tools?.length ?? 0,
+          'max_tokens': params.maxTokens,
+          'top_p': params.topP ?? -1,
+          'temperature': params.temperature ?? -1,
+          'include_tools': includeTools,
+        },
+      );
       stopwatch.stop();
       rethrow;
     }

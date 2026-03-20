@@ -190,6 +190,7 @@ class AnalyticsService {
     String? screen,
     Object? exception,
     StackTrace? stackTrace,
+    Map<String, Object>? metadata,
   }) async {
     // Fire-and-forget to avoid blocking UI.
     _sendToSupabase(
@@ -197,6 +198,7 @@ class AnalyticsService {
       eventType: errorType,
       message: errorMessage,
       screen: screen,
+      metadata: metadata,
     );
     if (kDebugMode) {
       debugPrint('❌ Error: $errorType $errorMessage');
