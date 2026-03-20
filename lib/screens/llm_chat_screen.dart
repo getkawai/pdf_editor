@@ -198,11 +198,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               errorType: 'llm_generation_error',
               errorMessage: response.errorMessage ?? 'Unknown error',
               screen: 'llm_chat',
+              exception: response.errorMessage ?? 'Unknown error',
             );
           }
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -214,6 +215,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           errorType: 'llm_exception',
           errorMessage: e.toString(),
           screen: 'llm_chat',
+          exception: e,
+          stackTrace: st,
         );
       }
     }

@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 /// Centralized analytics service for Firebase Analytics event tracking.
@@ -16,6 +17,7 @@ class AnalyticsService {
   }
 
   FirebaseAnalytics? _analytics;
+  FirebaseCrashlytics? _crashlytics;
 
   /// Get the underlying FirebaseAnalytics instance for advanced usage.
   /// Returns null if Firebase is not initialized.
@@ -31,10 +33,30 @@ class AnalyticsService {
     }
   }
 
+  FirebaseCrashlytics? get crashlytics {
+    try {
+      _crashlytics ??= FirebaseCrashlytics.instance;
+      return _crashlytics;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Crashlytics not available: $e');
+      }
+      return null;
+    }
+  }
+
   /// Check if Firebase is initialized and analytics is available.
   bool get isAvailable {
     try {
       return Firebase.apps.isNotEmpty && analytics != null;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bool get isCrashlyticsAvailable {
+    try {
+      return Firebase.apps.isNotEmpty && crashlytics != null;
     } catch (e) {
       return false;
     }
@@ -246,6 +268,8 @@ class AnalyticsService {
     required String errorType,
     required String errorMessage,
     String? screen,
+    Object? exception,
+    StackTrace? stackTrace,
   }) async {
     final parameters = <String, Object>{
       'error_type': errorType,
@@ -254,6 +278,25 @@ class AnalyticsService {
     if (screen != null) parameters['screen'] = screen;
     
     await logEvent(name: 'error', parameters: parameters);
+
+    if (!isCrashlyticsAvailable) return;
+    try {
+      await crashlytics!.setCustomKey('error_type', errorType);
+      if (screen != null) {
+        await crashlytics!.setCustomKey('screen', screen);
+      }
+      await crashlytics!.log(errorMessage);
+      await crashlytics!.recordError(
+        exception ?? errorMessage,
+        stackTrace ?? StackTrace.current,
+        reason: errorType,
+        information: screen != null ? ['screen: $screen'] : null,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Crashlytics error: $e');
+      }
+    }
   }
 
   // ============================================================================
