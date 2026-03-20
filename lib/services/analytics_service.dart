@@ -294,6 +294,10 @@ class AnalyticsService {
             ? <Object>['screen: $screen']
             : const <Object>[],
       );
+      final hasUnsent = await crashlytics!.checkForUnsentReports();
+      if (hasUnsent) {
+        await crashlytics!.sendUnsentReports();
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Crashlytics error: $e');
