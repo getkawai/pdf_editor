@@ -17,6 +17,12 @@ class TablePdfTool implements PdfTool {
   String get iconName => 'Icons.table_chart';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'tableData': 'CSV-like text with rows separated by newlines',
+        'hasHeader': 'Whether the first row is a header row',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

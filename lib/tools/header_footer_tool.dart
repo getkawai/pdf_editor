@@ -17,6 +17,14 @@ class HeaderFooterTool implements PdfTool {
   String get iconName => 'Icons.view_headline';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'headerText': 'Header text to render on each page',
+        'footerText': 'Footer text to render on each page',
+        'bodyText': 'Body text for the first page',
+        'pageCount': 'Number of pages to create',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

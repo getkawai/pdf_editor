@@ -16,6 +16,15 @@ class AttachmentPdfTool implements PdfTool {
   String get iconName => 'Icons.attach_file';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'pdfData': 'Optional existing PDF data to add the attachment to',
+        'attachmentData': 'Binary data for the file to attach',
+        'fileName': 'File name for the attachment',
+        'description': 'Optional attachment description',
+        'mimeType': 'Optional attachment MIME type',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

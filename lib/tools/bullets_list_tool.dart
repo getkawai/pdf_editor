@@ -17,6 +17,13 @@ class BulletsAndListsTool implements PdfTool {
   String get iconName => 'Icons.format_list_bulleted';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'items': 'List items as an array or a newline-separated string',
+        'ordered': 'Whether to render an ordered list (true) or unordered list (false)',
+        'fontSize': 'Font size for list markers',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
