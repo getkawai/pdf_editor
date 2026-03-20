@@ -9,18 +9,34 @@ A Flutter application for viewing, creating, and editing PDF documents on iOS an
 
 ## Features
 
-### PDF Tools
+### Document Scanning
+- **ML Kit Scanner**: Scan physical documents directly into PDFs (Android only)
+
+### PDF Creation & Conversion
+- **Text to PDF**: Create new PDF documents from custom text content
+- **Image to PDF**: Convert photos and images to PDF documents
+- **List & Table to PDF**: Generate structured PDFs with custom lists and tables
+- **OCR Support**: Extract text from image-based PDFs
+
+### PDF Security & Validation
+- **Encrypt & Decrypt**: Password protect PDFs or remove existing passwords
+- **Digital Signatures**: Add cryptographic and visual signatures to your PDFs
+- **PDF/A Conformance**: Validate and format PDFs for long-term archiving
+
+### PDF Editing & Manipulation
 - **View PDFs**: Open and view PDF documents with page navigation
-- **Create PDFs from Text**: Create new PDF documents with custom text content
-- **Create PDFs from Images**: Convert images to PDF documents
-- **Merge PDFs**: Combine multiple PDF documents into one
-- **Compress PDF**: Reduce PDF file size
-- **Annotate PDF**: Add text, highlights, and shapes to PDFs
+- **Merge PDFs**: Combine multiple PDF documents into a single file
+- **Compress PDF**: Optimize and reduce PDF file sizes
+- **Annotate & Shapes**: Add text, highlights, and various shapes to PDFs
+- **Header & Footer**: Inject custom headers and footers across pages
+- **Bookmarks & Hyperlinks**: Add interactive navigation elements to your PDFs
+- **RTL Text Support**: Full support for Right-to-Left text rendering
+- **Attachments**: Embed external files directly inside your PDF documents
 
 ### AI Features (Powered by LlamaDart)
-- **AI Chat**: Chat with local LLM models (GGUF format)
+- **AI Chat**: Chat with local LLM models entirely on-device (GGUF format)
 - **AI PDF Assistant**: Generate PDF content using AI prompts
-- **Summarize PDF**: Generate AI summaries of PDF documents
+- **Summarize PDF**: Generate AI summaries of long PDF documents
 
 ## Dependencies
 

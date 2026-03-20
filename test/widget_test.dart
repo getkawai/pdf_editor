@@ -18,11 +18,25 @@ void main() {
     // Verify that the app title is shown in the home screen.
     expect(find.text('PDF Editor'), findsAtLeastNWidgets(1));
 
+    // Verify that the subtitle is present.
+    expect(find.text('View, create, and edit PDF documents'), findsOneWidget);
+
+    // Verify that the info action button is present in the AppBar.
+    expect(find.byIcon(Icons.info_outline), findsOneWidget);
+
     // Verify that the main action buttons are present.
     expect(find.text('Open PDF'), findsOneWidget);
     expect(find.text('Create New PDF'), findsOneWidget);
+    expect(find.text('Scan Document'), findsOneWidget);
+    expect(find.text('PDF Tools'), findsOneWidget);
+    expect(find.text('AI Chat'), findsOneWidget);
 
-    // Verify that the initial icon is present.
+    // Verify that the icons are present.
     expect(find.byIcon(Icons.picture_as_pdf), findsOneWidget);
+    expect(find.byIcon(Icons.folder_open), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+    expect(find.byIcon(Icons.document_scanner), findsOneWidget);
+    expect(find.byIcon(Icons.build), findsOneWidget);
+    expect(find.byIcon(Icons.smart_toy), findsOneWidget);
   });
 }
