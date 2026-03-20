@@ -1,6 +1,7 @@
 name: Release APK Per Commit
 
-on: []
+on:
+  workflow_dispatch:
 
 permissions:
   contents: write
