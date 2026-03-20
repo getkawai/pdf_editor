@@ -86,7 +86,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.ANDROID_SDK_ROOT }}
-          key: ${{ runner.os }}-androidsdk-v4-full-${{ hashFiles('android/**', '.github/workflows/ci.yml') }}
+          key: ${{ runner.os }}-androidsdk-v4
           restore-keys: |
             ${{ runner.os }}-androidsdk-v4-
 
