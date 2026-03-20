@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
@@ -251,51 +250,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                   ],
                 ),
-                if (kDebugMode) ...[
-                  const SizedBox(height: 24),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Diagnostics',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final path = await _analytics.getLocalLogPath();
-                      final log = await _analytics.readLocalLog();
-                      if (!mounted) return;
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Local Log'),
-                          content: SingleChildScrollView(
-                            child: Text(
-                              log.isEmpty
-                                  ? 'No log entries yet.\n\nPath:\n$path'
-                                  : '$log\n\nPath:\n$path',
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.subject),
-                    label: const Text('View Local Log'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                ],
                 if (_recentFilePath != null) ...[
                   const SizedBox(height: 24),
                   Align(

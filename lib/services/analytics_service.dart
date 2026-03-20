@@ -1,10 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-/// Local-only analytics/error service.
-/// Writes events to a local log file and respects telemetry opt-out.
+/// Analytics/error service that logs to Supabase and respects telemetry opt-out.
 class AnalyticsService {
   AnalyticsService._privateConstructor();
 
@@ -16,61 +14,42 @@ class AnalyticsService {
 
   bool get isAvailable => true;
 
-  static const String _telemetryEnabledKey = 'telemetry_enabled';
-  bool? _telemetryEnabledCache;
-  File? _localLogFile;
 
-  Future<bool> _isTelemetryEnabled() async {
-    if (_telemetryEnabledCache != null) {
-      return _telemetryEnabledCache!;
-    }
+  static const String _supabaseUrl = 'https://rprdvmnxdmlhlbgdkhkx.supabase.co';
+  static const String _supabaseApiKey = 'sb_publishable__0zRF8LyDQaGtFF2IJSt9g_YX33se4o';
+
+  Future<void> _sendToSupabase({
+    required String level,
+    required String eventType,
+    required String message,
+    String? screen,
+    Map<String, Object>? metadata,
+  }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _telemetryEnabledCache = prefs.getBool(_telemetryEnabledKey) ?? true;
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 5);
+      final request = await client.postUrl(
+        Uri.parse('$_supabaseUrl/rest/v1/app_logs'),
+      );
+      request.headers
+        ..set('apikey', _supabaseApiKey)
+        ..set('Authorization', 'Bearer $_supabaseApiKey')
+        ..set('Content-Type', 'application/json')
+        ..set('Prefer', 'return=minimal');
+
+      final payload = <String, Object?>{
+        'level': level,
+        'event_type': eventType,
+        'message': message,
+        'screen': screen,
+        'metadata': metadata,
+      };
+      request.add(utf8.encode(jsonEncode(payload)));
+      final response = await request.close();
+      response.drain();
+      client.close(force: true);
     } catch (_) {
-      _telemetryEnabledCache = true;
-    }
-    return _telemetryEnabledCache!;
-  }
-
-  Future<File> _getLocalLogFile() async {
-    if (_localLogFile != null) return _localLogFile!;
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/telemetry.log');
-    _localLogFile = file;
-    return file;
-  }
-
-  Future<void> _appendLocalLog(String line) async {
-    try {
-      final file = await _getLocalLogFile();
-      await file.writeAsString('$line\n', mode: FileMode.append, flush: true);
-    } catch (_) {
-      // Ignore local logging failures.
-    }
-  }
-
-  Future<String> getLocalLogPath() async {
-    final file = await _getLocalLogFile();
-    return file.path;
-  }
-
-  Future<String> readLocalLog({int maxBytes = 20000}) async {
-    try {
-      final file = await _getLocalLogFile();
-      if (!await file.exists()) return '';
-      final length = await file.length();
-      if (length <= maxBytes) {
-        return await file.readAsString();
-      }
-      final raf = await file.open();
-      final start = length - maxBytes;
-      await raf.setPosition(start);
-      final bytes = await raf.read(maxBytes);
-      await raf.close();
-      return String.fromCharCodes(bytes);
-    } catch (_) {
-      return '';
+      // Ignore network errors.
     }
   }
 
@@ -82,13 +61,13 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
-    await _appendLocalLog('[EVENT] $name ${parameters ?? const {}}');
-    if (!await _isTelemetryEnabled()) {
-      if (kDebugMode) {
-        debugPrint('📊 Event dropped (telemetry disabled): $name');
-      }
-      return;
-    }
+    // Fire-and-forget to avoid blocking UI.
+    _sendToSupabase(
+      level: 'info',
+      eventType: 'event',
+      message: name,
+      metadata: parameters,
+    );
     if (kDebugMode) {
       debugPrint('📊 Event: $name, params: $parameters');
     }
@@ -102,13 +81,13 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
-    await _appendLocalLog('[SCREEN] $screenName ${screenClass ?? screenName}');
-    if (!await _isTelemetryEnabled()) {
-      if (kDebugMode) {
-        debugPrint('📱 Screen View dropped (telemetry disabled): $screenName');
-      }
-      return;
-    }
+    // Fire-and-forget to avoid blocking UI.
+    _sendToSupabase(
+      level: 'info',
+      eventType: 'screen',
+      message: screenName,
+      metadata: {'screen_class': screenClass ?? screenName},
+    );
     if (kDebugMode) {
       debugPrint('📱 Screen View: $screenName');
     }
@@ -212,13 +191,13 @@ class AnalyticsService {
     Object? exception,
     StackTrace? stackTrace,
   }) async {
-    await _appendLocalLog('[ERROR] $errorType $errorMessage ${screen ?? ''}');
-    if (!await _isTelemetryEnabled()) {
-      if (kDebugMode) {
-        debugPrint('❌ Error dropped (telemetry disabled): $errorType');
-      }
-      return;
-    }
+    // Fire-and-forget to avoid blocking UI.
+    _sendToSupabase(
+      level: 'error',
+      eventType: errorType,
+      message: errorMessage,
+      screen: screen,
+    );
     if (kDebugMode) {
       debugPrint('❌ Error: $errorType $errorMessage');
     }
@@ -244,15 +223,8 @@ class AnalyticsService {
   }
 
   Future<void> setAnalyticsCollectionEnabled(bool enabled) async {
-    _telemetryEnabledCache = enabled;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_telemetryEnabledKey, enabled);
-    } catch (_) {
-      // Ignore persistence failures; cache still applies for this session.
-    }
     if (kDebugMode) {
-      debugPrint('⚙️ Analytics collection set to: $enabled');
+      debugPrint('⚙️ Analytics collection flag ignored: $enabled');
     }
   }
 }
