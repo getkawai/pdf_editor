@@ -276,6 +276,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               'role': 'assistant',
               'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
             });
+            _analytics.logEvent(
+              name: 'llm_ui_error_message_added',
+              parameters: {
+                'model': _selectedModelSlug ?? 'unknown',
+                'error': response.errorMessage ?? 'Unknown error',
+              },
+            );
             
             // Log error
             _analytics.logError(
@@ -296,6 +303,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
+        );
+        _analytics.logEvent(
+          name: 'llm_ui_error_snackbar',
+          parameters: {
+            'model': _selectedModelSlug ?? 'unknown',
+            'error': e.toString(),
+          },
         );
         
         // Log error
