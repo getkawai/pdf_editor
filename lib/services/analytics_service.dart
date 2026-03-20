@@ -26,6 +26,7 @@ class AnalyticsService {
     Map<String, Object>? metadata,
   }) async {
     try {
+      final deviceTime = DateTime.now().toIso8601String();
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 5);
       final request = await client.postUrl(
@@ -43,6 +44,7 @@ class AnalyticsService {
         'message': message,
         'screen': screen,
         'metadata': metadata,
+        'created_at': deviceTime,
       };
       request.add(utf8.encode(jsonEncode(payload)));
       final response = await request.close();
@@ -61,16 +63,7 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
-    // Fire-and-forget to avoid blocking UI.
-    _sendToSupabase(
-      level: 'info',
-      eventType: 'event',
-      message: name,
-      metadata: parameters,
-    );
-    if (kDebugMode) {
-      debugPrint('📊 Event: $name, params: $parameters');
-    }
+    // Intentionally no-op: only errors are sent.
   }
 
   // ============================================================================
@@ -81,16 +74,7 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
-    // Fire-and-forget to avoid blocking UI.
-    _sendToSupabase(
-      level: 'info',
-      eventType: 'screen',
-      message: screenName,
-      metadata: {'screen_class': screenClass ?? screenName},
-    );
-    if (kDebugMode) {
-      debugPrint('📱 Screen View: $screenName');
-    }
+    // Intentionally no-op: only errors are sent.
   }
 
   // ============================================================================
