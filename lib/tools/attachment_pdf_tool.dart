@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'pdf_tool.dart';
@@ -17,8 +18,8 @@ class AttachmentPdfTool implements PdfTool {
 
   @override
   Map<String, String> get parametersSchema => {
-        'pdfData': 'Optional existing PDF data to add the attachment to',
-        'attachmentData': 'Binary data for the file to attach',
+        'pdfData': 'Optional existing PDF data to add the attachment to (base64-encoded string of the PDF data)',
+        'attachmentData': 'Base64-encoded string of the binary data for the file to attach',
         'fileName': 'File name for the attachment',
         'description': 'Optional attachment description',
         'mimeType': 'Optional attachment MIME type',
@@ -30,8 +31,8 @@ class AttachmentPdfTool implements PdfTool {
   @override
   Future<PdfToolResult> execute(Map<String, dynamic> parameters) async {
     try {
-      final Uint8List? pdfData = parameters['pdfData'] as Uint8List?;
-      final Uint8List? attachmentData = parameters['attachmentData'] as Uint8List?;
+      final Uint8List? pdfData = _decodeData(parameters['pdfData'], allowEmpty: true);
+      final Uint8List? attachmentData = _decodeData(parameters['attachmentData']);
       final String fileName = parameters['fileName'] as String? ?? 'attachment.bin';
       final String? description = parameters['description'] as String?;
       final String? mimeType = parameters['mimeType'] as String?;
@@ -67,5 +68,24 @@ class AttachmentPdfTool implements PdfTool {
     } catch (e) {
       return PdfToolResult.failure('Error adding attachment: $e');
     }
+  }
+
+  Uint8List? _decodeData(dynamic value, {bool allowEmpty = false}) {
+    if (value == null) {
+      return null;
+    }
+    if (value is Uint8List) {
+      return value;
+    }
+    if (value is List<int>) {
+      return Uint8List.fromList(value);
+    }
+    if (value is String) {
+      if (value.isEmpty && allowEmpty) {
+        return null;
+      }
+      return Uint8List.fromList(base64Decode(value));
+    }
+    return null;
   }
 }
