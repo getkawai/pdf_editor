@@ -33,6 +33,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-flutter-pub-
 
+      - name: Inject Firebase config (firebase_options.dart)
+        shell: bash
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
+            echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
+            echo "✓ Injected firebase_options.dart"
+          else
+            echo "⚠️ FIREBASE_OPTIONS_DART secret not set, skipping injection"
+          fi
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+
       - name: Run Flutter tests with coverage
         run: flutter test --coverage
 
@@ -48,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
     needs: [test]
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,23 +86,55 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK
+      - name: Cache Android SDK components
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}
+          key: ${{ runner.os }}-androidsdk-v4-full-${{ hashFiles('android/**', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-v4-
+
+      - name: Install NDK + CMake
         shell: bash
         run: |
-          sdkmanager "ndk;26.3.11579264" > /dev/null
+          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1" "build-tools;35.0.0" "platforms;android-34" "platforms;android-35" "platforms;android-36" > /dev/null
           set +o pipefail
           yes | sdkmanager --licenses > /dev/null
-          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/26.3.11579264" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/28.2.13676358" >> $GITHUB_ENV
+
+      - name: Inject Firebase config (google-services.json)
+        shell: bash
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+            echo "✓ Injected google-services.json"
+          else
+            echo "⚠️ GOOGLE_SERVICES_JSON secret not set, skipping injection"
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
+      - name: Inject Firebase config (firebase_options.dart)
+        shell: bash
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
+            echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
+            echo "✓ Injected firebase_options.dart"
+          else
+            echo "⚠️ FIREBASE_OPTIONS_DART secret not set, skipping injection"
+          fi
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
 
       - name: Build Android APK
-        run: flutter build apk --release
+        run: flutter build apk --debug
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           retention-days: 30
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
 
   release:
     runs-on: ubuntu-latest

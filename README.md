@@ -33,7 +33,7 @@ A Flutter application for viewing, creating, and editing PDF documents on iOS an
 - **RTL Text Support**: Full support for Right-to-Left text rendering
 - **Attachments**: Embed external files directly inside your PDF documents
 
-### AI Features (Powered by LlamaDart)
+### AI Features (Powered by Cactus)
 - **AI Chat**: Chat with local LLM models entirely on-device (GGUF format)
 - **AI PDF Assistant**: Generate PDF content using AI prompts
 - **Summarize PDF**: Generate AI summaries of long PDF documents
@@ -42,7 +42,7 @@ A Flutter application for viewing, creating, and editing PDF documents on iOS an
 
 - `syncfusion_flutter_pdf` - PDF creation and manipulation
 - `syncfusion_flutter_pdfviewer` - PDF viewing
-- `llamadart` - Local LLM inference with llama.cpp
+- `cactus` - Local LLM inference with GGUF models
 - `file_picker` - File selection for PDFs and images
 - `path_provider` - Document storage location
 - `permission_handler` - Permission management
@@ -151,29 +151,28 @@ Permissions added to `Info.plist`:
 
 ### Using AI Features
 
-1. **Download a GGUF model** (see [LLM_SETUP.md](LLM_SETUP.md) for recommended models)
-2. Launch the app and tap "AI Chat"
-3. Enter the path to your `.gguf` model file
-4. Tap "Load Model"
-5. Start chatting or use AI PDF tools from the Tools screen
+1. Launch the app and tap "AI Chat"
+2. Select a model from the dropdown
+3. Tap "Download & Load"
+4. Start chatting or use AI PDF tools from the Tools screen
 
 ## LLM Setup
 
 For detailed instructions on setting up and using the LLM features, see [LLM_SETUP.md](LLM_SETUP.md).
 
 **Quick Start:**
-1. Download TinyLlama 1.1B GGUF model (~638MB)
-2. Store it on your device
-3. Load it in the AI Chat screen
+1. Open the AI Chat screen
+2. Select a model (for example `qwen3-0.6`)
+3. Download & load it
 4. Start generating content!
 
 ## License
 
 This project uses:
 - **Syncfusion Flutter PDF** - Requires commercial or community license
-- **LlamaDart** - MIT License
+- **Cactus** - MIT License
 
-See [Syncfusion License](https://www.syncfusion.com/sales/license) and [LlamaDart License](https://github.com/leehack/llamadart/blob/main/LICENSE) for details.
+See [Syncfusion License](https://www.syncfusion.com/sales/license) and [Cactus License](https://github.com/cactus-compute/cactus/blob/main/LICENSE) for details.
 
 ## Support
 
@@ -181,6 +180,6 @@ For issues or feature requests, please file an issue in the repository.
 
 ## Acknowledgments
 
-- [LlamaDart](https://github.com/leehack/llamadart) for local LLM inference
+- [Cactus](https://github.com/cactus-compute/cactus) for local LLM inference
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) for the underlying C++ library
 - [Syncfusion](https://www.syncfusion.com/) for PDF libraries

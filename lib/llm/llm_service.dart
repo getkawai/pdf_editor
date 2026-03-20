@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:llamadart/llamadart.dart';
-import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:cactus/cactus.dart';
 import 'llm_models.dart';
 
-/// Service for managing LLM inference using LlamaDart
+/// Service for managing LLM inference using Cactus
 class LlmService {
   static final LlmService _instance = LlmService._internal();
-  
-  LlamaBackend? _backend;
-  LlamaEngine? _engine;
-  LlmModelConfig? _currentModel;
+
+  CactusLM? _model;
+  CactusModel? _currentModel;
+  int? _currentContextSize;
   bool _isInitialized = false;
   String? _error;
 
@@ -25,10 +22,13 @@ class LlmService {
   bool get isInitialized => _isInitialized;
 
   /// Check if a model is currently loaded
-  bool get isModelLoaded => _currentModel != null && _engine != null;
+  bool get isModelLoaded => _currentModel != null && _model != null;
 
-  /// Get the current model config
-  LlmModelConfig? get currentModel => _currentModel;
+  /// Get the current model
+  CactusModel? get currentModel => _currentModel;
+
+  /// Check if current model supports tool calling
+  bool get supportsToolCalling => _currentModel?.supportsToolCalling == true;
 
   /// Get the last error message
   String? get lastError => _error;
@@ -38,8 +38,7 @@ class LlmService {
     if (_isInitialized) return true;
 
     try {
-      _backend = LlamaBackend();
-      _engine = LlamaEngine(_backend!);
+      _model = CactusLM();
       _isInitialized = true;
       _error = null;
       return true;
@@ -49,22 +48,44 @@ class LlmService {
     }
   }
 
-  /// Load a model from file path
-  Future<bool> loadModel(LlmModelConfig config) async {
+  /// Fetch supported models from Cactus
+  Future<List<CactusModel>> getModels() async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+    try {
+      return await _model!.getModels();
+    } catch (e) {
+      _error = 'Failed to fetch models: $e';
+      return [];
+    }
+  }
+
+  /// Download and initialize a model by slug
+  Future<bool> loadModel(
+    CactusModel model, {
+    int? contextSize,
+    CactusProgressCallback? onProgress,
+  }) async {
     if (!_isInitialized) {
       await initialize();
     }
 
     try {
-      final file = File(config.modelPath);
-      if (!await file.exists()) {
-        _error = 'Model file not found: ${config.modelPath}';
-        return false;
-      }
+      _model ??= CactusLM();
+      await _model!.downloadModel(
+        model: model.slug,
+        downloadProcessCallback: onProgress,
+      );
+      await _model!.initializeModel(
+        params: CactusInitParams(
+          model: model.slug,
+          contextSize: contextSize ?? 2048,
+        ),
+      );
 
-      await _engine!.loadModel(config.modelPath);
-
-      _currentModel = config;
+      _currentModel = model;
+      _currentContextSize = contextSize ?? 2048;
       _error = null;
       return true;
     } catch (e) {
@@ -75,54 +96,59 @@ class LlmService {
 
   /// Generate text from a prompt (non-streaming)
   Future<LlmGenerationResponse> generate(LlmGenerationRequest request) async {
-    if (_engine == null || _currentModel == null) {
+    if (_model == null || _currentModel == null) {
       return LlmGenerationResponse.error('No model loaded');
     }
 
     try {
-      final useFunctionGemma = _shouldUseFunctionGemma(request);
+      final messages = _buildMessages(
+        prompt: request.prompt,
+        systemPrompt: request.systemPrompt,
+      );
 
-      final primaryPrompt = useFunctionGemma
-          ? _buildFunctionGemmaPrompt(
-              userMessage: request.prompt,
-              systemPrompt: request.systemPrompt,
-              tools: request.tools,
-              addModelTurn: true,
-            )
-          : request.prompt;
+      final primary = await _generateInternal(
+        messages: messages,
+        request: request,
+      );
 
-      final primary = await _generateInternal(primaryPrompt);
-
-      if (useFunctionGemma) {
-        final call = _parseFunctionCall(primary.content);
-        if (call != null && _isToolDeclared(call.name, request.tools)) {
+      if (request.enableFunctionCalling &&
+          request.onExecuteTool != null &&
+          primary.toolCalls.isNotEmpty) {
+        final toolMessages = <ChatMessage>[];
+        for (final call in primary.toolCalls) {
+          if (!_isToolDeclared(call.name, request.tools)) continue;
           final toolResponse = await _executeFunctionTool(call.name, call.arguments, request);
           if (toolResponse != null) {
-            final responseBlock = _buildFunctionResponseBlock(
-              toolName: call.name,
-              response: toolResponse,
-            );
-            final followupPrompt = _buildFunctionGemmaPrompt(
-              userMessage: request.prompt,
-              systemPrompt: request.systemPrompt,
-              tools: request.tools,
-              modelFunctionCallBlock: call.rawBlock,
-              functionResponseBlock: responseBlock,
-              addModelTurn: true,
-            );
-
-            final followup = await _generateInternal(followupPrompt);
-            return LlmGenerationResponse(
-              content: followup.content,
-              tokensGenerated: primary.tokensGenerated + followup.tokensGenerated,
-              duration: primary.duration + followup.duration,
-              isComplete: true,
+            toolMessages.add(
+              ChatMessage(
+                role: 'tool',
+                content: _formatToolResponse(call.name, toolResponse),
+              ),
             );
           }
         }
+
+        if (toolMessages.isNotEmpty) {
+          final followup = await _generateInternal(
+            messages: [...messages, ...toolMessages],
+            request: request,
+            includeTools: false,
+          );
+          return LlmGenerationResponse(
+            content: followup.response,
+            tokensGenerated: primary.tokensGenerated + followup.tokensGenerated,
+            duration: primary.duration + followup.duration,
+            isComplete: true,
+          );
+        }
       }
 
-      return primary;
+      return LlmGenerationResponse(
+        content: primary.response,
+        tokensGenerated: primary.tokensGenerated,
+        duration: primary.duration,
+        isComplete: true,
+      );
     } catch (e) {
       return LlmGenerationResponse.error('Generation failed: $e');
     }
@@ -130,25 +156,41 @@ class LlmService {
 
   /// Generate text with streaming (recommended for UI)
   Stream<LlmChunk> generateStream(LlmGenerationRequest request) async* {
-    if (_engine == null || _currentModel == null) {
+    if (_model == null || _currentModel == null) {
       yield const LlmChunk(content: 'Error: No model loaded', isComplete: true);
       return;
     }
 
     try {
-      final prompt = _shouldUseFunctionGemma(request)
-          ? _buildFunctionGemmaPrompt(
-              userMessage: request.prompt,
-              systemPrompt: request.systemPrompt,
-              tools: request.tools,
-              addModelTurn: true,
-            )
-          : request.prompt;
+      final messages = _buildMessages(
+        prompt: request.prompt,
+        systemPrompt: request.systemPrompt,
+      );
 
-      await for (final token in _engine!.generate(prompt)) {
-        yield LlmChunk(content: token);
+      final controller = StreamController<LlmChunk>();
+      Future<void> run() async {
+        try {
+          final streamed = await _model!.generateCompletionStream(
+            messages: messages,
+            params: _buildCompletionParams(request),
+          );
+          streamed.stream.listen(
+            (token) => controller.add(LlmChunk(content: token)),
+            onError: (e) => controller.add(LlmChunk(content: 'Error: $e', isComplete: true)),
+            onDone: () async {
+              await streamed.result;
+              controller.add(const LlmChunk(content: '', isComplete: true));
+              await controller.close();
+            },
+          );
+        } catch (e) {
+          controller.add(LlmChunk(content: 'Error: $e', isComplete: true));
+          await controller.close();
+        }
       }
-      yield const LlmChunk(content: '', isComplete: true);
+
+      run();
+      yield* controller.stream;
     } catch (e) {
       yield LlmChunk(content: 'Error: $e', isComplete: true);
     }
@@ -157,263 +199,72 @@ class LlmService {
   /// Get model info
   LlmModelInfo getModelInfo() {
     if (_currentModel == null) {
-      return LlmModelInfo(
+      return const LlmModelInfo(
         name: 'No model loaded',
-        path: '',
+        slug: '',
         isLoaded: false,
       );
     }
 
     return LlmModelInfo(
-      name: _currentModel!.modelName,
-      path: _currentModel!.modelPath,
+      name: _currentModel!.name,
+      slug: _currentModel!.slug,
       isLoaded: true,
-      contextSize: _currentModel!.contextSize,
+      contextSize: _currentContextSize,
     );
   }
 
   /// Unload the current model
   Future<void> unloadModel() async {
-    if (_engine != null) {
-      await _engine!.dispose();
-      _engine = null;
+    if (_model != null) {
+      _model!.unload();
       _currentModel = null;
+      _currentContextSize = null;
     }
   }
 
   /// Dispose the service and release all resources
   Future<void> dispose() async {
     await unloadModel();
-    if (_backend != null) {
-      await _backend!.dispose();
-      _backend = null;
-    }
+    _model = null;
     _isInitialized = false;
   }
 
-  /// Check if a model file exists at the given path
-  Future<bool> modelExists(String modelPath) async {
-    return await File(modelPath).exists();
-  }
-
-  /// Get recommended model download URLs
-  static const Map<String, String> recommendedModels = {
-    'FunctionGemma 270M (BF16)': 'https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-BF16.gguf',
-  };
-
-  static const String _functionGemmaFileName = 'functiongemma-270m-it-BF16.gguf';
-  static const String _functionGemmaUrl =
-      'https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-BF16.gguf';
-
-  Future<bool> ensureFunctionGemmaModelLoaded() async {
-    if (kIsWeb) {
-      _error = 'FunctionGemma download is not supported on web.';
-      return false;
-    }
-
-    if (!_isInitialized) {
-      await initialize();
-    }
-
-    if (_currentModel != null &&
-        _engine != null &&
-        _currentModel!.modelPath.toLowerCase().contains('functiongemma')) {
-      return true;
-    }
-
-    try {
-      final modelPath = await getFunctionGemmaModelPath();
-      final file = File(modelPath);
-      if (!await file.exists()) {
-        await _downloadFunctionGemma(file);
-      }
-
-      final config = LlmModelConfig(
-        modelPath: modelPath,
-        modelName: LlmModelConfig.functionGemma_270m.modelName,
-        contextSize: LlmModelConfig.functionGemma_270m.contextSize,
-        gpuLayers: LlmModelConfig.functionGemma_270m.gpuLayers,
-        threads: LlmModelConfig.functionGemma_270m.threads,
-        temperature: LlmModelConfig.functionGemma_270m.temperature,
-        maxTokens: LlmModelConfig.functionGemma_270m.maxTokens,
-      );
-
-      return await loadModel(config);
-    } catch (e) {
-      _error = 'Failed to prepare FunctionGemma: $e';
-      return false;
-    }
-  }
-
-  Future<String> getFunctionGemmaModelPath() async {
-    final directory = await getApplicationSupportDirectory();
-    final modelsDir = Directory('${directory.path}/models');
-    if (!await modelsDir.exists()) {
-      await modelsDir.create(recursive: true);
-    }
-    return '${modelsDir.path}/$_functionGemmaFileName';
-  }
-
-  Future<void> _downloadFunctionGemma(File target) async {
-    final temp = File('${target.path}.download');
-    if (await temp.exists()) {
-      await temp.delete();
-    }
-
-    final client = HttpClient();
-    try {
-      final request = await client.getUrl(Uri.parse(_functionGemmaUrl));
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        throw HttpException('Download failed with status ${response.statusCode}');
-      }
-
-      final sink = temp.openWrite();
-      await response.pipe(sink);
-      await sink.flush();
-      await sink.close();
-
-      if (await target.exists()) {
-        await target.delete();
-      }
-
-      try {
-        await temp.rename(target.path);
-      } catch (_) {
-        await temp.copy(target.path);
-        await temp.delete();
-      }
-    } finally {
-      client.close();
-    }
-  }
-
-  Future<LlmGenerationResponse> _generateInternal(String prompt) async {
+  Future<_InternalGeneration> _generateInternal({
+    required List<ChatMessage> messages,
+    required LlmGenerationRequest request,
+    bool includeTools = true,
+  }) async {
     final stopwatch = Stopwatch()..start();
-    final buffer = StringBuffer();
-    int tokenCount = 0;
-
-    await for (final token in _engine!.generate(prompt)) {
-      buffer.write(token);
-      tokenCount++;
-    }
+    final result = await _model!.generateCompletion(
+      messages: messages,
+      params: _buildCompletionParams(request, includeTools: includeTools),
+    );
 
     stopwatch.stop();
 
-    return LlmGenerationResponse(
-      content: buffer.toString(),
-      tokensGenerated: tokenCount,
+    return _InternalGeneration(
+      response: result.response,
+      toolCalls: result.toolCalls,
+      tokensGenerated: result.totalTokens,
       duration: stopwatch.elapsed,
-      isComplete: true,
     );
   }
 
-  bool _shouldUseFunctionGemma(LlmGenerationRequest request) {
-    if (!request.enableFunctionCalling) return false;
-    if (request.tools.isEmpty) return false;
-    if (_currentModel == null) return false;
-    final modelPath = _currentModel!.modelPath.toLowerCase();
-    final modelName = _currentModel!.modelName.toLowerCase();
-    return modelPath.contains('functiongemma') || modelName.contains('functiongemma');
+  List<ChatMessage> _buildMessages({
+    required String prompt,
+    String? systemPrompt,
+  }) {
+    final messages = <ChatMessage>[];
+    if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
+      messages.add(ChatMessage(role: 'system', content: systemPrompt.trim()));
+    }
+    messages.add(ChatMessage(role: 'user', content: prompt));
+    return messages;
   }
 
   bool _isToolDeclared(String name, List<LlmFunctionTool> tools) {
     return tools.any((tool) => tool.name == name);
-  }
-
-  String _buildFunctionGemmaPrompt({
-    required String userMessage,
-    required List<LlmFunctionTool> tools,
-    String? systemPrompt,
-    String? modelFunctionCallBlock,
-    String? functionResponseBlock,
-    bool addModelTurn = false,
-  }) {
-    final buffer = StringBuffer();
-    buffer.writeln('<start_of_turn>developer');
-    buffer.writeln('You are a model that can do function calling with the following functions');
-    
-    for (final tool in tools) {
-      buffer.writeln('<start_function_declaration>declaration:${tool.name}{description:<escape>${tool.description}<escape>,parameters:{${_formatToolParameters(tool.parameters)}}}<end_function_declaration>');
-    }
-
-    if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
-      buffer.writeln(systemPrompt.trim());
-    }
-    
-    buffer.writeln('<end_of_turn>');
-    buffer.writeln('<start_of_turn>user');
-    buffer.writeln(userMessage);
-    buffer.writeln('<end_of_turn>');
-    if (modelFunctionCallBlock != null) {
-      buffer.writeln('<start_of_turn>model');
-      buffer.writeln(modelFunctionCallBlock.trim());
-      buffer.writeln('<end_of_turn>');
-    }
-    if (functionResponseBlock != null) {
-      buffer.writeln(functionResponseBlock.trim());
-    }
-    if (addModelTurn) {
-      buffer.writeln('<start_of_turn>model');
-    }
-    return buffer.toString();
-  }
-
-  String _formatToolParameters(Map<String, String> parameters) {
-    if (parameters.isEmpty) return 'type:<escape>OBJECT<escape>';
-    final props = parameters.entries
-        .map((e) => '${e.key}:{description:<escape>${e.value}<escape>,type:<escape>STRING<escape>}')
-        .join(',');
-    final reqs = parameters.keys.map((k) => '<escape>$k<escape>').join(',');
-    return 'properties:{$props},required:[$reqs],type:<escape>OBJECT<escape>';
-  }
-
-  LlmFunctionCall? _parseFunctionCall(String text) {
-    const startTag = '<start_function_call>';
-    const endTag = '<end_function_call>';
-    final start = text.indexOf(startTag);
-    if (start == -1) return null;
-    final end = text.indexOf(endTag, start);
-    if (end == -1) return null;
-
-    final rawBlock = text.substring(start, end + endTag.length);
-    final inner = text.substring(start + startTag.length, end).trim();
-    if (!inner.startsWith('call:')) return null;
-
-    final callBody = inner.substring('call:'.length).trim();
-    final nameEnd = callBody.indexOf('{');
-    if (nameEnd == -1) return null;
-    final name = callBody.substring(0, nameEnd).trim();
-
-    final argsBody = callBody.substring(nameEnd + 1);
-    final argsEnd = argsBody.lastIndexOf('}');
-    final argsText = argsEnd >= 0 ? argsBody.substring(0, argsEnd) : argsBody;
-    final args = _parseArguments(argsText);
-
-    return LlmFunctionCall(
-      name: name,
-      arguments: args,
-      rawBlock: rawBlock,
-    );
-  }
-
-  Map<String, String> _parseArguments(String argsText) {
-    final Map<String, String> args = {};
-    final regex = RegExp(r"(\w+):(?:<escape>(.*?)<escape>|([^,}]*))");
-    
-    for (final match in regex.allMatches(argsText)) {
-      final key = match.group(1)!;
-      final val1 = match.group(2);
-      final val2 = match.group(3);
-      var value = val1 ?? val2 ?? '';
-      value = value.trim();
-      
-      if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
-        value = value.substring(1, value.length - 1);
-      }
-      args[key] = value;
-    }
-    return args;
   }
 
   Future<Map<String, String>?> _executeFunctionTool(
@@ -454,13 +305,59 @@ class LlmService {
     return '${date.day} $monthName ${date.year}';
   }
 
-  String _buildFunctionResponseBlock({
-    required String toolName,
-    required Map<String, String> response,
+  CactusCompletionParams _buildCompletionParams(
+    LlmGenerationRequest request, {
+    bool includeTools = true,
   }) {
-    final payload = response.entries
-        .map((entry) => '${entry.key}:<escape>${entry.value}<escape>')
-        .join(',');
-    return '<start_function_response>response:$toolName{$payload}<end_function_response>';
+    final canUseTools = supportsToolCalling;
+    return CactusCompletionParams(
+      model: _currentModel?.slug,
+      temperature: request.temperature,
+      topP: request.topP / 100.0,
+      maxTokens: request.maxTokens,
+      tools: includeTools &&
+              canUseTools &&
+              request.enableFunctionCalling &&
+              request.tools.isNotEmpty
+          ? _mapTools(request.tools)
+          : null,
+    );
   }
+
+  List<CactusTool> _mapTools(List<LlmFunctionTool> tools) {
+    return tools.map((tool) {
+      final params = tool.parameters.map(
+        (key, desc) => MapEntry(
+          key,
+          ToolParameter(type: 'string', description: desc, required: true),
+        ),
+      );
+      return CactusTool(
+        name: tool.name,
+        description: tool.description,
+        parameters: ToolParametersSchema(properties: params),
+      );
+    }).toList();
+  }
+
+  String _formatToolResponse(String toolName, Map<String, String> response) {
+    final payload = response.entries
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join(', ');
+    return 'Tool $toolName result: {$payload}';
+  }
+}
+
+class _InternalGeneration {
+  final String response;
+  final List<ToolCall> toolCalls;
+  final int tokensGenerated;
+  final Duration duration;
+
+  _InternalGeneration({
+    required this.response,
+    required this.toolCalls,
+    required this.tokensGenerated,
+    required this.duration,
+  });
 }

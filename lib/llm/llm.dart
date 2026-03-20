@@ -1,7 +1,7 @@
-/// LLM Service using LlamaDart for local AI inference
+/// LLM Service using Cactus for local AI inference
 /// 
 /// This service provides a high-level API for interacting with
-/// local LLM models using the llamadart package.
+/// local LLM models using the cactus package.
 
 library llm;
 

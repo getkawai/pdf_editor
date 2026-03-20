@@ -26,17 +26,17 @@ void main() {
 
     // Verify that the main action buttons are present.
     expect(find.text('Open PDF'), findsOneWidget);
-    expect(find.text('Create New PDF'), findsOneWidget);
-    expect(find.text('Scan Document'), findsOneWidget);
+    expect(find.text('Create New'), findsOneWidget);
+    expect(find.text('Scan Doc'), findsOneWidget);
     expect(find.text('PDF Tools'), findsOneWidget);
-    expect(find.text('AI Chat'), findsOneWidget);
+    expect(find.text('AI Chat'), findsAtLeastNWidgets(1));
 
     // Verify that the icons are present.
     expect(find.byIcon(Icons.picture_as_pdf), findsOneWidget);
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
     expect(find.byIcon(Icons.document_scanner), findsOneWidget);
-    expect(find.byIcon(Icons.build), findsOneWidget);
+    expect(find.byIcon(Icons.build), findsAtLeastNWidgets(1));
     expect(find.byIcon(Icons.smart_toy), findsOneWidget);
   });
 }

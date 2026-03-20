@@ -17,6 +17,11 @@ class ShapesPdfTool implements PdfTool {
   String get iconName => 'Icons.crop_square';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'shapeType': 'rectangle, ellipse, line, polygon, or all',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

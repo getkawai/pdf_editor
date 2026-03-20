@@ -17,6 +17,15 @@ class RtlTextTool implements PdfTool {
   String get iconName => 'Icons.format_textdirection_r_to_l';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'text': 'Main text content to render',
+        'title': 'Optional title shown above the text',
+        'isRtl': 'Whether to render right-to-left text direction',
+        'fontSize': 'Font size for the main text',
+        'fontData': 'Optional TrueType font data to embed',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

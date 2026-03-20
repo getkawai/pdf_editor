@@ -17,6 +17,14 @@ class ConformancePdfTool implements PdfTool {
   String get iconName => 'Icons.verified';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'conformanceLevel': 'PDF/A level: a1b, a2b, or a3b',
+        'text': 'Text content to render in the document',
+        'fontSize': 'Font size for the text',
+        'fontData': 'Optional TrueType font data to embed',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

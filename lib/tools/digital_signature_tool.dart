@@ -17,6 +17,14 @@ class DigitalSignatureTool implements PdfTool {
   String get iconName => 'Icons.draw';
 
   @override
+  Map<String, String> get parametersSchema => {
+        'pdfData': 'Optional existing PDF data to sign',
+        'pfxData': 'PFX certificate bytes',
+        'password': 'Certificate password',
+        'reason': 'Optional signing reason',
+      };
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

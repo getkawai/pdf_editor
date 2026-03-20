@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -30,7 +30,7 @@ Future<void> _initializeCrashlytics() async {
     return true;
   };
 
-  await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+  await crashlytics.setCrashlyticsCollectionEnabled(true);
 }
 
 class PdfEditorApp extends StatelessWidget {
@@ -48,6 +48,17 @@ class PdfEditorApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        navigationBarTheme: NavigationBarThemeData(
+          indicatorColor: Colors.blue.withOpacity(0.15),
+          labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
+            (states) {
+              if (states.contains(MaterialState.selected)) {
+                return const TextStyle(fontWeight: FontWeight.w600);
+              }
+              return null;
+            },
+          ),
+        ),
         appBarTheme: const AppBarTheme(
           centerTitle: false,
           elevation: 2,
@@ -74,6 +85,17 @@ class PdfEditorApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        navigationBarTheme: NavigationBarThemeData(
+          indicatorColor: Colors.blue.withOpacity(0.25),
+          labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
+            (states) {
+              if (states.contains(MaterialState.selected)) {
+                return const TextStyle(fontWeight: FontWeight.w600);
+              }
+              return null;
+            },
+          ),
+        ),
         appBarTheme: const AppBarTheme(
           centerTitle: false,
           elevation: 2,
@@ -94,7 +116,7 @@ class PdfEditorApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const MainNavigationScreen(),
     );
   }
 
