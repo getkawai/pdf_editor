@@ -23,44 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Cache Flutter pub deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-pub-
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Cache Android SDK components
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.ANDROID_SDK_ROOT }}/cmake/3.22.1
-            ${{ env.ANDROID_SDK_ROOT }}/ndk/26.3.11579264
-            ${{ env.ANDROID_SDK_ROOT }}/licenses
-          key: ${{ runner.os }}-androidsdk-v2-cmake-3.22.1-ndk-26.3.11579264
-          restore-keys: |
-            ${{ runner.os }}-androidsdk-v2-
-
-      - name: Install NDK + CMake
-        shell: bash
-        run: |
-          sdkmanager "ndk;26.3.11579264" "cmake;3.22.1" > /dev/null
-          set +o pipefail
-          yes | sdkmanager --licenses > /dev/null
-          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/26.3.11579264" >> $GITHUB_ENV
-
       - name: Resolve latest successful CI run
         id: resolve_run
         env:
@@ -69,7 +31,6 @@ jobs:
           RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs" \
             --jq '.workflow_runs
               | map(select(.event=="push"
-                and (.head_branch=="main" or .head_branch=="master")
                 and .conclusion=="success"))
               | first
               | .id')
