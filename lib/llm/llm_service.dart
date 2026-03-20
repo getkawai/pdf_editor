@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cactus/cactus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'llm_models.dart';
 
 /// Service for managing LLM inference using Cactus
@@ -263,22 +262,8 @@ class LlmService {
         tokensGenerated: result.totalTokens,
         duration: stopwatch.elapsed,
       );
-    } catch (e, st) {
+    } catch (e) {
       stopwatch.stop();
-      await Sentry.captureException(
-        e,
-        stackTrace: st,
-        withScope: (scope) {
-          scope.setTag('llm_stage', 'generateCompletion');
-          scope.setTag('model', _currentModel?.slug ?? 'unknown');
-          scope.setExtra('context_size', _currentContextSize ?? -1);
-          scope.setExtra('tools_count', params.tools?.length ?? 0);
-          scope.setExtra('max_tokens', params.maxTokens);
-          scope.setExtra('top_p', params.topP);
-          scope.setExtra('temperature', params.temperature);
-          scope.setExtra('include_tools', includeTools);
-        },
-      );
       rethrow;
     }
   }

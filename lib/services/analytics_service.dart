@@ -1,10 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// No-op analytics service (Firebase removed).
-///
-/// This preserves the existing API surface so the rest of the app compiles,
-/// but it does not send any events externally.
+/// Local-only analytics/error service.
+/// Writes events to a local log file and respects telemetry opt-out.
 class AnalyticsService {
   AnalyticsService._privateConstructor();
 
@@ -16,6 +16,64 @@ class AnalyticsService {
 
   bool get isAvailable => true;
 
+  static const String _telemetryEnabledKey = 'telemetry_enabled';
+  bool? _telemetryEnabledCache;
+  File? _localLogFile;
+
+  Future<bool> _isTelemetryEnabled() async {
+    if (_telemetryEnabledCache != null) {
+      return _telemetryEnabledCache!;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _telemetryEnabledCache = prefs.getBool(_telemetryEnabledKey) ?? true;
+    } catch (_) {
+      _telemetryEnabledCache = true;
+    }
+    return _telemetryEnabledCache!;
+  }
+
+  Future<File> _getLocalLogFile() async {
+    if (_localLogFile != null) return _localLogFile!;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/telemetry.log');
+    _localLogFile = file;
+    return file;
+  }
+
+  Future<void> _appendLocalLog(String line) async {
+    try {
+      final file = await _getLocalLogFile();
+      await file.writeAsString('$line\n', mode: FileMode.append, flush: true);
+    } catch (_) {
+      // Ignore local logging failures.
+    }
+  }
+
+  Future<String> getLocalLogPath() async {
+    final file = await _getLocalLogFile();
+    return file.path;
+  }
+
+  Future<String> readLocalLog({int maxBytes = 20000}) async {
+    try {
+      final file = await _getLocalLogFile();
+      if (!await file.exists()) return '';
+      final length = await file.length();
+      if (length <= maxBytes) {
+        return await file.readAsString();
+      }
+      final raf = await file.open();
+      final start = length - maxBytes;
+      await raf.setPosition(start);
+      final bytes = await raf.read(maxBytes);
+      await raf.close();
+      return String.fromCharCodes(bytes);
+    } catch (_) {
+      return '';
+    }
+  }
+
   // ============================================================================
   // GENERAL EVENTS
   // ============================================================================
@@ -24,22 +82,15 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
-    try {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: name,
-          category: 'event',
-          data: parameters,
-          level: SentryLevel.info,
-        ),
-      );
+    await _appendLocalLog('[EVENT] $name ${parameters ?? const {}}');
+    if (!await _isTelemetryEnabled()) {
       if (kDebugMode) {
-        debugPrint('📊 Event: $name, params: $parameters');
+        debugPrint('📊 Event dropped (telemetry disabled): $name');
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Sentry breadcrumb error: $e');
-      }
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint('📊 Event: $name, params: $parameters');
     }
   }
 
@@ -51,24 +102,15 @@ class AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
-    try {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: screenName,
-          category: 'screen',
-          data: {
-            'screen_class': screenClass ?? screenName,
-          },
-          level: SentryLevel.info,
-        ),
-      );
+    await _appendLocalLog('[SCREEN] $screenName ${screenClass ?? screenName}');
+    if (!await _isTelemetryEnabled()) {
       if (kDebugMode) {
-        debugPrint('📱 Screen View: $screenName');
+        debugPrint('📱 Screen View dropped (telemetry disabled): $screenName');
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Sentry breadcrumb error: $e');
-      }
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint('📱 Screen View: $screenName');
     }
   }
 
@@ -170,25 +212,15 @@ class AnalyticsService {
     Object? exception,
     StackTrace? stackTrace,
   }) async {
-    try {
-      await Sentry.captureException(
-        exception ?? errorMessage,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('error_type', errorType);
-          if (screen != null) {
-            scope.setTag('screen', screen);
-          }
-          scope.setExtra('error_message', errorMessage);
-        },
-      );
+    await _appendLocalLog('[ERROR] $errorType $errorMessage ${screen ?? ''}');
+    if (!await _isTelemetryEnabled()) {
       if (kDebugMode) {
-        debugPrint('❌ Error: $errorType $errorMessage');
+        debugPrint('❌ Error dropped (telemetry disabled): $errorType');
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Sentry error: $e');
-      }
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint('❌ Error: $errorType $errorMessage');
     }
   }
 
@@ -197,17 +229,8 @@ class AnalyticsService {
   // ============================================================================
 
   Future<void> setUserId(String? userId) async {
-    try {
-      Sentry.configureScope((scope) {
-        scope.setUser(userId != null ? SentryUser(id: userId) : null);
-      });
-      if (kDebugMode) {
-        debugPrint('👤 setUserId: $userId');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Sentry user error: $e');
-      }
+    if (kDebugMode) {
+      debugPrint('👤 setUserId (local only): $userId');
     }
   }
 
@@ -215,23 +238,21 @@ class AnalyticsService {
     required String name,
     String? value,
   }) async {
-    try {
-      Sentry.configureScope((scope) {
-        scope.setTag(name, value ?? '');
-      });
-      if (kDebugMode) {
-        debugPrint('🏷️ setUserProperty: $name=$value');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Sentry tag error: $e');
-      }
+    if (kDebugMode) {
+      debugPrint('🏷️ setUserProperty (local only): $name=$value');
     }
   }
 
   Future<void> setAnalyticsCollectionEnabled(bool enabled) async {
+    _telemetryEnabledCache = enabled;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_telemetryEnabledKey, enabled);
+    } catch (_) {
+      // Ignore persistence failures; cache still applies for this session.
+    }
     if (kDebugMode) {
-      debugPrint('⚙️ Analytics collection flag ignored (Sentry): $enabled');
+      debugPrint('⚙️ Analytics collection set to: $enabled');
     }
   }
 }
