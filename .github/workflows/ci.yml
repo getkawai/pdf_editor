@@ -69,6 +69,22 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache Android SDK components
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}
+          key: ${{ runner.os }}-androidsdk-v4
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-v4-
+
+      - name: Cache Android SDK licenses
+        uses: actions/cache@v4
+        with:
+          path: ~/.android
+          key: ${{ runner.os }}-androidsdk-licenses-v1
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-licenses-
+
       - name: Cache Flutter pub deps
         uses: actions/cache@v4
         with:
@@ -81,14 +97,6 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Cache Android SDK components
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.ANDROID_SDK_ROOT }}
-          key: ${{ runner.os }}-androidsdk-v4
-          restore-keys: |
-            ${{ runner.os }}-androidsdk-v4-
 
       - name: Install NDK + CMake
         shell: bash
