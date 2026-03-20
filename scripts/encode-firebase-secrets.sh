@@ -42,3 +42,21 @@ if [ -f "$PROJECT_ROOT/ios/Runner/GoogleService-Info.plist" ]; then
 else
     echo "ℹ ios/Runner/GoogleService-Info.plist not found (optional for iOS builds)"
 fi
+
+# Check if firebase_options.dart exists
+if [ -f "$PROJECT_ROOT/lib/firebase_options.dart" ]; then
+    echo ""
+    echo "✓ Found lib/firebase_options.dart"
+    FIREBASE_OPTIONS_B64=$(base64 -i "$PROJECT_ROOT/lib/firebase_options.dart" | tr -d '\n')
+    echo "✓ Encoded firebase_options.dart"
+    echo ""
+    echo "To set the secret, run:"
+    echo "  gh secret set FIREBASE_OPTIONS_DART --body=\"$FIREBASE_OPTIONS_B64\""
+    echo ""
+    echo "Or copy this base64 string:"
+    echo "$FIREBASE_OPTIONS_B64"
+else
+    echo ""
+    echo "ℹ lib/firebase_options.dart not found"
+    echo "  Generate with: flutterfire configure"
+fi

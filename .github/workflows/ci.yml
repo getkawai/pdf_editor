@@ -102,6 +102,18 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
+      - name: Inject Firebase config (firebase_options.dart)
+        shell: bash
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
+            echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
+            echo "✓ Injected firebase_options.dart"
+          else
+            echo "⚠️ FIREBASE_OPTIONS_DART secret not set, skipping injection"
+          fi
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+
       - name: Build Android APK
         run: flutter build apk --release
 
