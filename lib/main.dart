@@ -30,7 +30,7 @@ Future<void> _initializeCrashlytics() async {
     return true;
   };
 
-  await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+  await crashlytics.setCrashlyticsCollectionEnabled(true);
 }
 
 class PdfEditorApp extends StatelessWidget {
