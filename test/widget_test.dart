@@ -26,8 +26,8 @@ void main() {
 
     // Verify that the main action buttons are present.
     expect(find.text('Open PDF'), findsOneWidget);
-    expect(find.text('Create New PDF'), findsOneWidget);
-    expect(find.text('Scan Document'), findsOneWidget);
+    expect(find.text('Create New'), findsOneWidget);
+    expect(find.text('Scan Doc'), findsOneWidget);
     expect(find.text('PDF Tools'), findsOneWidget);
     expect(find.text('AI Chat'), findsOneWidget);
 

@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
 import '../services/analytics_service.dart';
+import '../tools/tools_manager.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateToTab});
@@ -16,6 +17,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _recentFilePath;
   final AnalyticsService _analytics = AnalyticsService();
+  final int _toolsCount = ToolsManager().getAllTools().length;
+  bool _animateIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _animateIn = true;
+      });
+    });
+  }
 
   Future<void> _pickAndOpenPDF() async {
     try {
@@ -67,9 +81,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _openRecentPdf() async {
+    if (_recentFilePath == null) return;
+    _analytics.logOpenPdf(source: 'recent');
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(filePath: _recentFilePath!),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canNavigateTabs = widget.onNavigateToTab != null;
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width >= 600;
+    final horizontalPadding = isTablet ? 32.0 : 24.0;
+    final heroIconSize = isTablet ? 120.0 : 96.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -83,21 +113,34 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Column(
+          child: Center(
+            child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 24,
+            ),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOut,
+              opacity: _animateIn ? 1 : 0,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOut,
+                offset: _animateIn ? Offset.zero : const Offset(0, 0.02),
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.picture_as_pdf,
-                  size: 96,
+                  size: heroIconSize,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'PDF Editor',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: isTablet
+                      ? Theme.of(context).textTheme.headlineLarge
+                      : Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -183,6 +226,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
+                    'Stats',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _buildStatChip(
+                      context,
+                      label: 'Tools Available',
+                      value: _toolsCount.toString(),
+                      icon: Icons.build,
+                    ),
+                    if (_recentFilePath != null)
+                      _buildStatChip(
+                        context,
+                        label: 'Last Opened',
+                        value: _recentFilePath!.split('/').last,
+                        icon: Icons.history,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
                     'Diagnostics',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
@@ -222,8 +293,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _openRecentPdf,
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Continue Editing'),
+                    ),
+                  ),
                 ],
               ],
+                ),
+              ),
             ),
           ),
         ),
@@ -269,6 +351,48 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatChip(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+              const SizedBox(height: 2),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 200),
+                child: Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
