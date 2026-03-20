@@ -130,13 +130,15 @@ jobs:
 
       - name: Archive artifacts
         run: |
-          tar -czf android-apk.tar.gz -C android-apk .
-          shasum -a 256 android-apk.tar.gz > checksums.txt
+          apk_path=$(ls -1 android-apk/*.apk 2>/dev/null | head -n 1 || true)
+          if [ -z "$apk_path" ]; then
+            echo "No APK found in android-apk/"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
           files: |
-            android-apk.tar.gz
-            checksums.txt
+            android-apk/*.apk
