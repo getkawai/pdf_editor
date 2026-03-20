@@ -30,30 +30,16 @@ Cactus can load models from a local path or a remote URL. If you use a URL, the 
 
 ## Quick Start
 
-### 1. Download a GGUF Model
+### 1. Select a Model
 
-Recommended models (quantized Q4_K_M for best speed/quality balance):
+The app fetches the supported model list from Cactus and lets you pick a model by slug (for example: `qwen3-0.6`, `gemma3-270m`).
 
-| Model | Size | Download |
-|-------|------|----------|
-| **TinyLlama 1.1B** | ~638MB | [Download](https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf) |
-| **Phi 2** | ~1.7GB | [Download](https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf) |
-| **Mistral 7B** | ~4.1GB | [Download](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf) |
-| **Llama 2 7B** | ~4.1GB | [Download](https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf) |
-| **FunctionGemma 270M (BF16)** | Small | [Download](https://huggingface.co/unsloth/functiongemma-270m-it-GGUF/resolve/main/functiongemma-270m-it-BF16.gguf) |
-
-### 2. Store Model on Device
-
-**Android:** `/sdcard/Download/` or app-specific directory  
-**iOS:** Files app → On My iPhone → PDF Editor  
-**Desktop:** Any accessible location (e.g., `~/models/`)
-
-### 3. Load Model in App
+### 2. Download & Load in App
 
 1. Open the app
 2. Navigate to **AI Chat** screen
-3. Enter the full path to your `.gguf` model file
-4. Tap **Load Model**
+3. Select a model from the dropdown
+4. Tap **Download & Load**
 5. Start chatting!
 
 ## Usage Examples
@@ -66,11 +52,10 @@ import 'package:pdf_editor/llm/llm.dart';
 final llmService = LlmService();
 await llmService.initialize();
 
-// Load model
-await llmService.loadModel(LlmModelConfig(
-  modelPath: '/path/to/model.gguf',
-  modelName: 'My Model',
-));
+// Load model (by slug from Cactus)
+final models = await llmService.getModels();
+final model = models.firstWhere((m) => m.slug == 'qwen3-0.6');
+await llmService.loadModel(model);
 
 // Generate text
 final response = await llmService.generate(LlmGenerationRequest(
@@ -94,14 +79,9 @@ llmService.generateStream(LlmGenerationRequest(
 });
 ```
 
-## FunctionGemma Notes
+## Tool Calling Notes
 
-FunctionGemma uses a specific tool-calling chat template and prefers a system/developer prompt that declares available functions. If you use it for function calling, format prompts accordingly. Recommended inference settings:
-
-- `top_k = 64`
-- `top_p = 0.95`
-- `temperature = 1.0`
-- maximum context length = `32768`
+Cactus supports tool calling on models that advertise `supportsToolCalling`. Use `getModels()` and prefer those models when enabling tool calling.
 
 ## AI PDF Tools
 
@@ -141,20 +121,17 @@ Refer to the Cactus docs for platform requirements, supported backends, and any 
 
 ## Troubleshooting
 
-### "Model file not found"
-- Verify the file path is correct
-- Ensure the file has `.gguf` extension
-- Check file permissions
+### "Model not downloaded"
+- Ensure the model was downloaded successfully
+- Try re-downloading from the AI Chat screen
 
 ### "Failed to load library"
 - Run `flutter clean && flutter pub get`
 - Verify platform is supported
 
 ### Slow performance
-- Use a smaller model (TinyLlama, Phi 2)
+- Use a smaller model
 - Reduce context size in config
-- Enable GPU acceleration if available
-- Use lower quantization (Q4_K_M)
 
 ### Out of memory
 - Close other applications
@@ -165,14 +142,9 @@ Refer to the Cactus docs for platform requirements, supported backends, and any 
 ## Model Configuration Options
 
 ```dart
-LlmModelConfig(
-  modelPath: 'path/to/model.gguf',
-  modelName: 'Custom Model',
-  contextSize: 4096,      // Context window size
-  gpuLayers: 0,           // GPU layers (0 = CPU only)
-  threads: 4,             // CPU threads
-  temperature: 0.7,       // Creativity (0.0-1.0)
-  maxTokens: 1024,        // Max generation length
+await llmService.loadModel(
+  model,
+  contextSize: 4096, // Context window size
 );
 ```
 

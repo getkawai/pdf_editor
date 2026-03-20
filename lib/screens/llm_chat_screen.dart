@@ -1,3 +1,4 @@
+import 'package:cactus/cactus.dart';
 import 'package:flutter/material.dart';
 import '../llm/llm.dart';
 import '../services/analytics_service.dart';
@@ -14,11 +15,10 @@ class LlmChatScreen extends StatefulWidget {
 class _LlmChatScreenState extends State<LlmChatScreen> {
   final LlmService _llmService = LlmService();
   final TextEditingController _promptController = TextEditingController();
-  final TextEditingController _modelPathController = TextEditingController();
   final AnalyticsService _analytics = AnalyticsService();
 
   final List<Map<String, String>> _messages = [];
-  final List<LlmFunctionTool> _functionGemmaTools = const [
+  final List<LlmFunctionTool> _defaultTools = const [
     LlmFunctionTool(
       name: 'get_today_date',
       description: 'Gets today\'s date. Use this when the user needs the current date or calendar info.',
@@ -34,13 +34,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     )).toList();
     
     return [
-      ..._functionGemmaTools,
+      ..._defaultTools,
       ...pdfTools,
     ];
   }
   bool _isModelLoaded = false;
   bool _isLoading = false;
-  String? _selectedModel;
+  bool _isLoadingModels = false;
+  List<CactusModel> _availableModels = [];
+  String? _selectedModelSlug;
   DateTime? _requestStartTime;
 
   @override
@@ -52,17 +54,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   Future<void> _initializeService() async {
     await _llmService.initialize();
     if (mounted) {
-      setState(() => _isLoading = true);
+      setState(() => _isLoadingModels = true);
     }
 
-    final success = await _llmService.ensureFunctionGemmaModelLoaded();
+    final models = await _llmService.getModels();
 
     if (mounted) {
       setState(() {
-        _isLoading = false;
-        _isModelLoaded = success;
-        if (success) {
-          _selectedModel = LlmModelConfig.functionGemma_270m.modelName;
+        _availableModels = models;
+        _isLoadingModels = false;
+        if (_selectedModelSlug == null && models.isNotEmpty) {
+          _selectedModelSlug = models.first.slug;
         }
       });
     }
@@ -70,14 +72,37 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Future<void> _loadModel() async {
     setState(() => _isLoading = true);
-    final success = await _llmService.ensureFunctionGemmaModelLoaded();
+    final selected = _availableModels
+        .where((m) => m.slug == _selectedModelSlug)
+        .toList();
+    final model = selected.isNotEmpty ? selected.first : null;
+    if (model == null) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a model')),
+        );
+      }
+      return;
+    }
+
+    final success = await _llmService.loadModel(
+      model,
+      onProgress: (progress, status, isError) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = true;
+        });
+      },
+    );
 
     if (mounted) {
       setState(() {
         _isLoading = false;
         _isModelLoaded = success;
         if (success) {
-          _selectedModel = LlmModelConfig.functionGemma_270m.modelName;
+          _selectedModelSlug = model.slug;
+          model.isDownloaded = true;
         }
       });
 
@@ -113,7 +138,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _analytics.logAiMessage(
       messageType: 'user',
       messageLength: userMessage.length,
-      model: _selectedModel,
+      model: _selectedModelSlug,
     );
 
     try {
@@ -151,7 +176,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _analytics.logAiResponse(
         responseLength: response.content.length,
         latency: latency,
-        model: _selectedModel,
+        model: _selectedModelSlug,
       );
 
       if (mounted) {
@@ -194,7 +219,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   @override
   void dispose() {
     _promptController.dispose();
-    _modelPathController.dispose();
     _llmService.dispose();
     super.dispose();
   }
@@ -267,23 +291,46 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'FunctionGemma Model',
+            'Model',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'The app will automatically download and load FunctionGemma 270M (BF16).',
-          ),
+          if (_isLoadingModels)
+            const Text('Loading supported models...')
+          else if (_availableModels.isEmpty)
+            const Text('No models available. Try again later.')
+          else
+            DropdownButtonFormField<String>(
+              value: _selectedModelSlug,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Select model',
+              ),
+              items: _availableModels.map((model) {
+                final suffix = model.isDownloaded ? ' • downloaded' : '';
+                return DropdownMenuItem<String>(
+                  value: model.slug,
+                  child: Text('${model.name} (${model.slug})$suffix'),
+                );
+              }).toList(),
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _selectedModelSlug = value;
+                      });
+                    },
+            ),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: _isLoading ? null : _loadModel,
+            onPressed: (_isLoading || _isLoadingModels) ? null : _loadModel,
             child: const Text('Download & Load'),
           ),
-          if (_selectedModel != null)
+          if (_selectedModelSlug != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                'Loaded: $_selectedModel',
+                'Loaded: $_selectedModelSlug',
                 style: TextStyle(color: Colors.green.shade700),
               ),
             ),
@@ -349,7 +396,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _buildInfoRow('Loaded', info.isLoaded ? 'Yes' : 'No'),
             if (info.contextSize != null)
               _buildInfoRow('Context Size', '${info.contextSize}'),
-            _buildInfoRow('Path', info.path),
+            _buildInfoRow('Slug', info.slug),
           ],
         ),
         actions: [

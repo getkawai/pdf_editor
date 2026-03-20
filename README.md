@@ -151,20 +151,19 @@ Permissions added to `Info.plist`:
 
 ### Using AI Features
 
-1. **Download a GGUF model** (see [LLM_SETUP.md](LLM_SETUP.md) for recommended models)
-2. Launch the app and tap "AI Chat"
-3. Enter the path to your `.gguf` model file
-4. Tap "Load Model"
-5. Start chatting or use AI PDF tools from the Tools screen
+1. Launch the app and tap "AI Chat"
+2. Select a model from the dropdown
+3. Tap "Download & Load"
+4. Start chatting or use AI PDF tools from the Tools screen
 
 ## LLM Setup
 
 For detailed instructions on setting up and using the LLM features, see [LLM_SETUP.md](LLM_SETUP.md).
 
 **Quick Start:**
-1. Download TinyLlama 1.1B GGUF model (~638MB)
-2. Store it on your device
-3. Load it in the AI Chat screen
+1. Open the AI Chat screen
+2. Select a model (for example `qwen3-0.6`)
+3. Download & load it
 4. Start generating content!
 
 ## License

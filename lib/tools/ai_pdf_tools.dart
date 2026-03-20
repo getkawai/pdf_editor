@@ -43,14 +43,20 @@ class AiPdfAssistantTool implements PdfTool {
       }
 
       if (modelPath != null && modelPath.isNotEmpty) {
-        // Backwards compatibility: ignore custom paths and always use FunctionGemma
+        // Backwards compatibility: ignore custom paths and use Cactus model selection
       }
 
-      final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
-      if (!loaded) {
-        return PdfToolResult.failure(
-          _llmService.lastError ?? 'Failed to load model',
-        );
+      if (!_llmService.isModelLoaded) {
+        final models = await _llmService.getModels();
+        if (models.isEmpty) {
+          return PdfToolResult.failure('No models available');
+        }
+        final loaded = await _llmService.loadModel(models.first);
+        if (!loaded) {
+          return PdfToolResult.failure(
+            _llmService.lastError ?? 'Failed to load model',
+          );
+        }
       }
 
       // Generate content using AI
@@ -185,7 +191,11 @@ class SummarizePdfTool implements PdfTool {
       }
 
       if (!_llmService.isModelLoaded) {
-        final loaded = await _llmService.ensureFunctionGemmaModelLoaded();
+        final models = await _llmService.getModels();
+        if (models.isEmpty) {
+          return PdfToolResult.failure('No models available');
+        }
+        final loaded = await _llmService.loadModel(models.first);
         if (!loaded) {
           return PdfToolResult.failure(
             _llmService.lastError ?? 'Failed to load model',
