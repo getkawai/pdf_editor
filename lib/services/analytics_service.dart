@@ -290,7 +290,9 @@ class AnalyticsService {
         exception ?? errorMessage,
         stackTrace ?? StackTrace.current,
         reason: errorType,
-        information: screen != null ? ['screen: $screen'] : null,
+        information: screen != null
+            ? <Object>['screen: $screen']
+            : const <Object>[],
       );
     } catch (e) {
       if (kDebugMode) {
