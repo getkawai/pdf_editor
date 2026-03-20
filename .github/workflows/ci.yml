@@ -48,6 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
     needs: [test]
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,9 +81,9 @@ jobs:
             ${{ env.ANDROID_SDK_ROOT }}/cmake/3.22.1
             ${{ env.ANDROID_SDK_ROOT }}/ndk/26.3.11579264
             ${{ env.ANDROID_SDK_ROOT }}/licenses
-          key: ${{ runner.os }}-androidsdk-cmake-3.22.1-ndk-26.3.11579264
+          key: ${{ runner.os }}-androidsdk-v2-cmake-3.22.1-ndk-26.3.11579264
           restore-keys: |
-            ${{ runner.os }}-androidsdk-
+            ${{ runner.os }}-androidsdk-v2-
 
       - name: Install NDK + CMake
         shell: bash
