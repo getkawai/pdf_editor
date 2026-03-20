@@ -98,30 +98,6 @@ jobs:
           yes | sdkmanager --licenses > /dev/null
           echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/28.2.13676358" >> $GITHUB_ENV
 
-      - name: Inject Firebase config (google-services.json)
-        shell: bash
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            echo "✓ Injected google-services.json"
-          else
-            echo "⚠️ GOOGLE_SERVICES_JSON secret not set, skipping injection"
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: Inject Firebase config (firebase_options.dart)
-        shell: bash
-        run: |
-          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
-            echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
-            echo "✓ Injected firebase_options.dart"
-          else
-            echo "⚠️ FIREBASE_OPTIONS_DART secret not set, skipping injection"
-          fi
-        env:
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
-
       - name: Build Android APK
         run: flutter build apk --release
 
