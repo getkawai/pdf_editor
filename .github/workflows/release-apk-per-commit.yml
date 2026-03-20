@@ -30,8 +30,7 @@ jobs:
         run: |
           RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs" \
             --jq '.workflow_runs
-              | map(select(.event=="push"
-                and .conclusion=="success"))
+              | map(select(.conclusion=="success"))
               | first
               | .id')
 
