@@ -149,8 +149,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         systemPrompt: 'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools. Do NOT refuse to answer simple conversational questions.',
         temperature: 0.7,
         maxTokens: 512,
-        enableFunctionCalling: true,
-        tools: _getAllTools(),
+        enableFunctionCalling: _llmService.supportsToolCalling,
+        tools: _llmService.supportsToolCalling ? _getAllTools() : const [],
         onExecuteTool: (name, args) async {
           var tool = ToolsManager().getTool(name);
           tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
@@ -296,7 +296,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           ),
           const SizedBox(height: 8),
           if (_isLoadingModels)
-            const Text('Loading supported models...')
+          const Text('Loading supported models...')
           else if (_availableModels.isEmpty)
             const Text('No models available. Try again later.')
           else
@@ -307,7 +307,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 labelText: 'Select model',
               ),
               items: _availableModels.map((model) {
-                final suffix = model.isDownloaded ? ' • downloaded' : '';
+                final supportsTools = model.supportsToolCalling ? ' • tools' : '';
+                final downloaded = model.isDownloaded ? ' • downloaded' : '';
+                final suffix = '$supportsTools$downloaded';
                 return DropdownMenuItem<String>(
                   value: model.slug,
                   child: Text('${model.name} (${model.slug})$suffix'),

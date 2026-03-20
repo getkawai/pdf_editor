@@ -27,6 +27,9 @@ class LlmService {
   /// Get the current model
   CactusModel? get currentModel => _currentModel;
 
+  /// Check if current model supports tool calling
+  bool get supportsToolCalling => _currentModel?.supportsToolCalling == true;
+
   /// Get the last error message
   String? get lastError => _error;
 
@@ -306,12 +309,16 @@ class LlmService {
     LlmGenerationRequest request, {
     bool includeTools = true,
   }) {
+    final canUseTools = supportsToolCalling;
     return CactusCompletionParams(
       model: _currentModel?.slug,
       temperature: request.temperature,
       topP: request.topP / 100.0,
       maxTokens: request.maxTokens,
-      tools: includeTools && request.enableFunctionCalling && request.tools.isNotEmpty
+      tools: includeTools &&
+              canUseTools &&
+              request.enableFunctionCalling &&
+              request.tools.isNotEmpty
           ? _mapTools(request.tools)
           : null,
     );
