@@ -53,12 +53,30 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Future<void> _initializeService() async {
-    await _llmService.initialize();
+    final initialized = await _llmService.initialize();
+    if (!initialized) {
+      _analytics.logError(
+        errorType: 'llm_init_failed',
+        errorMessage: _llmService.lastError ?? 'LLM init failed',
+        screen: 'llm_chat',
+      );
+    }
     if (mounted) {
       setState(() => _isLoadingModels = true);
     }
 
-    final models = await _llmService.getModels();
+    List<CactusModel> models = [];
+    try {
+      models = await _llmService.getModels();
+    } catch (e, st) {
+      _analytics.logError(
+        errorType: 'llm_get_models_failed',
+        errorMessage: e.toString(),
+        screen: 'llm_chat',
+        exception: e,
+        stackTrace: st,
+      );
+    }
 
     if (mounted) {
       setState(() {
@@ -106,6 +124,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           model.isDownloaded = true;
         }
       });
+
+      if (!success) {
+        _analytics.logError(
+          errorType: 'llm_load_model_failed',
+          errorMessage: _llmService.lastError ?? 'Failed to load model',
+          screen: 'llm_chat',
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
