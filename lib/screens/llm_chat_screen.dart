@@ -43,6 +43,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   bool _isLoadingModels = false;
   List<CactusModel> _availableModels = [];
   String? _selectedModelSlug;
+  bool _enableTools = true;
   DateTime? _requestStartTime;
 
   @override
@@ -149,8 +150,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         systemPrompt: 'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools. Do NOT refuse to answer simple conversational questions.',
         temperature: 0.7,
         maxTokens: 512,
-        enableFunctionCalling: _llmService.supportsToolCalling,
-        tools: _llmService.supportsToolCalling ? _getAllTools() : const [],
+        enableFunctionCalling: _llmService.supportsToolCalling && _enableTools,
+        tools: (_llmService.supportsToolCalling && _enableTools)
+            ? _getAllTools()
+            : const [],
         onExecuteTool: (name, args) async {
           var tool = ToolsManager().getTool(name);
           tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
@@ -320,10 +323,37 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   : (value) {
                       setState(() {
                         _selectedModelSlug = value;
+                        final selected = _availableModels
+                            .where((m) => m.slug == value)
+                            .toList();
+                        final model = selected.isNotEmpty ? selected.first : null;
+                        if (model != null && !model.supportsToolCalling) {
+                          _enableTools = false;
+                        }
                       });
                     },
             ),
           const SizedBox(height: 8),
+          if (_selectedModelSlug != null)
+            Builder(
+              builder: (context) {
+                final selected = _availableModels
+                    .where((m) => m.slug == _selectedModelSlug)
+                    .toList();
+                final model = selected.isNotEmpty ? selected.first : null;
+                final supportsTools = model?.supportsToolCalling == true;
+                if (!supportsTools) return const SizedBox.shrink();
+                return SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Enable tools (function calling)'),
+                  value: _enableTools,
+                  onChanged: _isLoading
+                      ? null
+                      : (value) => setState(() => _enableTools = value),
+                );
+              },
+            ),
+          if (_selectedModelSlug != null) const SizedBox(height: 8),
           ElevatedButton(
             onPressed: (_isLoading || _isLoadingModels) ? null : _loadModel,
             child: const Text('Download & Load'),
