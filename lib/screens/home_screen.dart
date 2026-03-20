@@ -191,6 +191,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                // Test crash for Crashlytics
+                throw Exception('Test Crash for Crashlytics - ${DateTime.now().toIso8601String()}');
+              },
+              icon: const Icon(Icons.bug_report),
+              label: const Text('Test Crash'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
             if (_recentFilePath != null) ...[
               const SizedBox(height: 32),
               Text(
