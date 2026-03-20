@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:cactus/cactus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'llm_models.dart';
 
 /// Service for managing LLM inference using Cactus
@@ -236,19 +238,49 @@ class LlmService {
     bool includeTools = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    final result = await _model!.generateCompletion(
-      messages: messages,
-      params: _buildCompletionParams(request, includeTools: includeTools),
-    );
+    final params = _buildCompletionParams(request, includeTools: includeTools);
+    try {
+      if (kDebugMode) {
+        debugPrint(
+          'LLM generateCompletion: model=${_currentModel?.slug} '
+          'context=${_currentContextSize ?? 'n/a'} '
+          'tools=${params.tools?.length ?? 0} '
+          'maxTokens=${params.maxTokens} '
+          'topP=${params.topP} '
+          'temp=${params.temperature}',
+        );
+      }
+      final result = await _model!.generateCompletion(
+        messages: messages,
+        params: params,
+      );
 
-    stopwatch.stop();
+      stopwatch.stop();
 
-    return _InternalGeneration(
-      response: result.response,
-      toolCalls: result.toolCalls,
-      tokensGenerated: result.totalTokens,
-      duration: stopwatch.elapsed,
-    );
+      return _InternalGeneration(
+        response: result.response,
+        toolCalls: result.toolCalls,
+        tokensGenerated: result.totalTokens,
+        duration: stopwatch.elapsed,
+      );
+    } catch (e, st) {
+      stopwatch.stop();
+      await Sentry.captureException(
+        e,
+        stackTrace: st,
+        withScope: (scope) {
+          scope.setTag('llm_stage', 'generateCompletion');
+          scope.setTag('model', _currentModel?.slug ?? 'unknown');
+          scope.setExtra('context_size', _currentContextSize ?? -1);
+          scope.setExtra('tools_count', params.tools?.length ?? 0);
+          scope.setExtra('max_tokens', params.maxTokens);
+          scope.setExtra('top_p', params.topP);
+          scope.setExtra('temperature', params.temperature);
+          scope.setExtra('include_tools', includeTools);
+        },
+      );
+      rethrow;
+    }
   }
 
   List<ChatMessage> _buildMessages({
