@@ -183,3 +183,4 @@ For issues or feature requests, please file an issue in the repository.
 - [Cactus](https://github.com/cactus-compute/cactus) for local LLM inference
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) for the underlying C++ library
 - [Syncfusion](https://www.syncfusion.com/) for PDF libraries
+
