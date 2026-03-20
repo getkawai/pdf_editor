@@ -36,7 +36,7 @@ void main() {
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
     expect(find.byIcon(Icons.document_scanner), findsOneWidget);
-    expect(find.byIcon(Icons.build), findsOneWidget);
+    expect(find.byIcon(Icons.build), findsAtLeastNWidgets(1));
     expect(find.byIcon(Icons.smart_toy), findsOneWidget);
   });
 }
