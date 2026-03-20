@@ -39,13 +39,27 @@ class LlmService {
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
+    AnalyticsService().logEvent(
+      name: 'llm_init_start',
+      parameters: {'timestamp': DateTime.now().toIso8601String()},
+    );
     try {
       _model = CactusLM();
       _isInitialized = true;
       _error = null;
+      AnalyticsService().logEvent(
+        name: 'llm_init_success',
+        parameters: {'timestamp': DateTime.now().toIso8601String()},
+      );
       return true;
     } catch (e) {
       _error = 'Failed to initialize LLM backend: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_init_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {'exception': e.toString()},
+      );
       return false;
     }
   }
@@ -56,9 +70,19 @@ class LlmService {
       await initialize();
     }
     try {
+      AnalyticsService().logEvent(
+        name: 'llm_get_models_start',
+        parameters: {'timestamp': DateTime.now().toIso8601String()},
+      );
       return await _model!.getModels();
     } catch (e) {
       _error = 'Failed to fetch models: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_get_models_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {'exception': e.toString()},
+      );
       return [];
     }
   }
@@ -74,6 +98,13 @@ class LlmService {
     }
 
     try {
+      AnalyticsService().logEvent(
+        name: 'llm_load_model_start',
+        parameters: {
+          'model': model.slug,
+          'context_size': contextSize ?? 2048,
+        },
+      );
       _model ??= CactusLM();
       await _model!.downloadModel(
         model: model.slug,
@@ -89,9 +120,26 @@ class LlmService {
       _currentModel = model;
       _currentContextSize = contextSize ?? 2048;
       _error = null;
+      AnalyticsService().logEvent(
+        name: 'llm_load_model_success',
+        parameters: {
+          'model': model.slug,
+          'context_size': _currentContextSize ?? 2048,
+        },
+      );
       return true;
     } catch (e) {
       _error = 'Failed to load model: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_load_model_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {
+          'model': model.slug,
+          'context_size': contextSize ?? 2048,
+          'exception': e.toString(),
+        },
+      );
       return false;
     }
   }
@@ -99,10 +147,27 @@ class LlmService {
   /// Generate text from a prompt (non-streaming)
   Future<LlmGenerationResponse> generate(LlmGenerationRequest request) async {
     if (_model == null || _currentModel == null) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_no_model',
+        errorMessage: 'No model loaded',
+        screen: 'llm_service',
+      );
       return LlmGenerationResponse.error('No model loaded');
     }
 
     try {
+      AnalyticsService().logEvent(
+        name: 'llm_generate_start',
+        parameters: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'prompt_len': request.prompt.length,
+          'max_tokens': request.maxTokens,
+          'temperature': request.temperature,
+          'top_p': request.topP,
+          'tools_enabled': request.enableFunctionCalling,
+          'tools_count': request.tools.length,
+        },
+      );
       final messages = _buildMessages(
         prompt: request.prompt,
         systemPrompt: request.systemPrompt,
@@ -152,6 +217,15 @@ class LlmService {
         isComplete: true,
       );
     } catch (e) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_exception',
+        errorMessage: e.toString(),
+        screen: 'llm_service',
+        metadata: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'prompt_len': request.prompt.length,
+        },
+      );
       return LlmGenerationResponse.error('Generation failed: $e');
     }
   }
@@ -250,6 +324,18 @@ class LlmService {
           'temp=${params.temperature}',
         );
       }
+      AnalyticsService().logEvent(
+        name: 'llm_generate_completion_start',
+        parameters: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'context_size': _currentContextSize ?? -1,
+          'tools_count': params.tools?.length ?? 0,
+          'max_tokens': params.maxTokens,
+          'top_p': params.topP ?? -1,
+          'temperature': params.temperature ?? -1,
+          'include_tools': includeTools,
+        },
+      );
       final result = await _model!.generateCompletion(
         messages: messages,
         params: params,
@@ -257,6 +343,15 @@ class LlmService {
 
       stopwatch.stop();
 
+      AnalyticsService().logEvent(
+        name: 'llm_generate_completion_success',
+        parameters: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'tokens': result.totalTokens,
+          'duration_ms': stopwatch.elapsedMilliseconds,
+          'tool_calls': result.toolCalls.length,
+        },
+      );
       return _InternalGeneration(
         response: result.response,
         toolCalls: result.toolCalls,
