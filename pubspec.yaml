@@ -44,13 +44,16 @@ dependencies:
   syncfusion_flutter_pdf: ^33.1.44
   syncfusion_flutter_pdfviewer: ^33.1.44
 
-  # LlamaDart for local LLM inference
-  llamadart: ^0.6.7
+  # Cactus for local LLM inference
+  cactus:
+    git:
+      url: https://github.com/yudaprama/cactus-flutter.git
+      ref: chore/bump-device-info-plus-12-1-0
 
   # File handling
   file_picker: ^10.1.9
   path_provider: ^2.1.5
-  permission_handler: ^11.4.0
+  permission_handler: ^12.0.1
   google_mlkit_document_scanner: ^0.4.1
   google_mlkit_text_recognition: ^0.15.1
   image: ^4.1.3

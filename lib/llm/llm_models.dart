@@ -1,5 +1,5 @@
 /// LLM model configuration and types
-import 'package:llamadart/llamadart.dart';
+import 'package:cactus/cactus.dart';
 
 /// Configuration for LLM model
 class LlmModelConfig {
@@ -95,9 +95,9 @@ class LlmMessage {
     required this.content,
   });
 
-  /// Convert to LlamaTextContent
-  LlamaTextContent toLlamaText() {
-    return LlamaTextContent(content);
+  /// Convert to Cactus ChatMessage
+  ChatMessage toChatMessage() {
+    return ChatMessage(role: role.name, content: content);
   }
 }
 

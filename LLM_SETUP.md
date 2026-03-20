@@ -1,25 +1,24 @@
 # LLM Setup Guide for PDF Editor
 
-This guide explains how to set up and use the LLM (Large Language Model) features in the PDF Editor app using [llamadart](https://pub.dev/packages/llamadart).
+This guide explains how to set up and use the LLM (Large Language Model) features in the PDF Editor app using [cactus](https://pub.dev/packages/cactus).
 
-## What is LlamaDart?
+## What is Cactus?
 
-LlamaDart is a high-performance Flutter/Dart plugin for llama.cpp that enables running GGUF LLMs locally across native platforms and web with GPU acceleration.
+Cactus is a cross-platform Flutter/Dart framework for running GGUF LLMs locally in apps, with optional streaming and embeddings support.
 
 **Features:**
 - ✅ Cross-platform: Android, iOS, macOS, Linux, Windows, Web
-- ✅ GPU Acceleration: Metal (Apple), Vulkan (default), CUDA/HIP (optional)
-- ✅ Zero Configuration: Automatic native binary downloads
+- ✅ Local GGUF inference
 - ✅ Streaming API: Token-by-token generation
-- ✅ Chat Sessions: Built-in chat session management
+- ✅ Embeddings (optional)
 
 ## Installation
 
-The llamadart package is already included in `pubspec.yaml`:
+The cactus package is already included in `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  llamadart: ^0.6.7
+  cactus: ^1.3.0
 ```
 
 Run:
@@ -27,10 +26,7 @@ Run:
 flutter pub get
 ```
 
-On first run, llamadart automatically:
-1. Detects your platform/architecture
-2. Downloads the matching native runtime bundle
-3. Configures it via native assets
+Cactus can load models from a local path or a remote URL. If you use a URL, the model is downloaded and cached automatically.
 
 ## Quick Start
 
@@ -98,20 +94,6 @@ llmService.generateStream(LlmGenerationRequest(
 });
 ```
 
-### Chat Session
-
-```dart
-final session = llmService.createChatSession(
-  systemPrompt: 'You are a helpful assistant.',
-);
-
-await for (final chunk in session.create([
-  LlamaTextContent('Hello!'),
-])) {
-  print(chunk.choices.first.delta.content);
-}
-```
-
 ## FunctionGemma Notes
 
 FunctionGemma uses a specific tool-calling chat template and prefers a system/developer prompt that declares available functions. If you use it for function calling, format prompts accordingly. Recommended inference settings:
@@ -147,36 +129,7 @@ Generate AI summaries of PDF documents.
 
 ## Platform-Specific Notes
 
-### Android
-- Requires Android API level 24+
-- Vulkan backend enabled by default
-- Model files should be in accessible storage
-
-### iOS
-- Requires iOS 13+
-- Metal GPU acceleration enabled
-- Use Files app to manage model files
-
-### Linux
-Runtime dependencies (install based on your backend):
-
-```bash
-# Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install -y libvulkan1 vulkan-tools libopenblas0
-
-# Fedora/RHEL
-sudo dnf install -y vulkan-loader vulkan-tools openblas
-```
-
-### Windows
-- Vulkan runtime included with GPU drivers
-- No additional setup required
-
-### Web (Experimental)
-- Requires external JS bridge runtime
-- Uses WebGPU with CPU fallback
-- Browser cache used for model storage
+Refer to the Cactus docs for platform requirements, supported backends, and any required runtime dependencies.
 
 ## Performance Tips
 
@@ -194,7 +147,6 @@ sudo dnf install -y vulkan-loader vulkan-tools openblas
 - Check file permissions
 
 ### "Failed to load library"
-- Check internet connection (for first-run native download)
 - Run `flutter clean && flutter pub get`
 - Verify platform is supported
 
@@ -210,32 +162,7 @@ sudo dnf install -y vulkan-loader vulkan-tools openblas
 - Reduce context size
 - Use quantized models
 
-## Advanced Configuration
-
-### Custom Backend Configuration
-
-Add to `pubspec.yaml` for fine-tuned control:
-
-```yaml
-hooks:
-  user_defines:
-    llamadart:
-      llamadart_native_backends:
-        platforms:
-          android-arm64:
-            backends: [vulkan]  # or [cpu] for CPU-only
-            cpu_profile: full   # or 'compact' for smaller size
-          linux-x64: [vulkan, cuda]  # Enable CUDA on Linux
-          windows-x64: [vulkan, cuda]
-```
-
-After changing backends, run:
-```bash
-flutter clean
-flutter pub get
-```
-
-### Model Configuration Options
+## Model Configuration Options
 
 ```dart
 LlmModelConfig(
@@ -251,11 +178,11 @@ LlmModelConfig(
 
 ## Resources
 
-- **LlamaDart Docs:** https://pub.dev/documentation/llamadart/latest/
-- **LlamaDart GitHub:** https://github.com/leehack/llamadart
+- **Cactus Docs:** https://pub.dev/documentation/cactus/latest/
+- **Cactus GitHub:** https://github.com/cactus-compute/cactus
 - **GGUF Models:** https://huggingface.co/models?search=gguf
 - **TheBloke's Quantized Models:** https://huggingface.co/TheBloke
 
 ## License
 
-LlamaDart is licensed under MIT. GGUF models may have different licenses - check the model card on HuggingFace.
+Cactus is licensed under MIT. GGUF models may have different licenses - check the model card on HuggingFace.

@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:llamadart/llamadart.dart';
+import 'package:cactus/cactus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'llm_models.dart';
 
-/// Service for managing LLM inference using LlamaDart
+/// Service for managing LLM inference using Cactus
 class LlmService {
   static final LlmService _instance = LlmService._internal();
   
-  LlamaBackend? _backend;
-  LlamaEngine? _engine;
+  CactusLM? _model;
   LlmModelConfig? _currentModel;
   bool _isInitialized = false;
   String? _error;
@@ -25,7 +24,7 @@ class LlmService {
   bool get isInitialized => _isInitialized;
 
   /// Check if a model is currently loaded
-  bool get isModelLoaded => _currentModel != null && _engine != null;
+  bool get isModelLoaded => _currentModel != null && _model != null;
 
   /// Get the current model config
   LlmModelConfig? get currentModel => _currentModel;
@@ -38,8 +37,6 @@ class LlmService {
     if (_isInitialized) return true;
 
     try {
-      _backend = LlamaBackend();
-      _engine = LlamaEngine(_backend!);
       _isInitialized = true;
       _error = null;
       return true;
@@ -56,13 +53,26 @@ class LlmService {
     }
 
     try {
-      final file = File(config.modelPath);
-      if (!await file.exists()) {
-        _error = 'Model file not found: ${config.modelPath}';
-        return false;
+      if (!config.modelPath.startsWith('http://') &&
+          !config.modelPath.startsWith('https://')) {
+        final file = File(config.modelPath);
+        if (!await file.exists()) {
+          _error = 'Model file not found: ${config.modelPath}';
+          return false;
+        }
       }
 
-      await _engine!.loadModel(config.modelPath);
+      if (_model != null) {
+        _model!.dispose();
+        _model = null;
+      }
+
+      _model = await CactusLM.init(
+        modelUrl: config.modelPath,
+        contextSize: config.contextSize,
+        gpuLayers: config.gpuLayers,
+        threads: config.threads,
+      );
 
       _currentModel = config;
       _error = null;
@@ -75,7 +85,7 @@ class LlmService {
 
   /// Generate text from a prompt (non-streaming)
   Future<LlmGenerationResponse> generate(LlmGenerationRequest request) async {
-    if (_engine == null || _currentModel == null) {
+    if (_model == null || _currentModel == null) {
       return LlmGenerationResponse.error('No model loaded');
     }
 
@@ -91,7 +101,12 @@ class LlmService {
             )
           : request.prompt;
 
-      final primary = await _generateInternal(primaryPrompt);
+      final primary = await _generateInternal(
+        primaryPrompt,
+        maxTokens: request.maxTokens,
+        temperature: request.temperature,
+        topP: request.topP,
+      );
 
       if (useFunctionGemma) {
         final call = _parseFunctionCall(primary.content);
@@ -111,7 +126,12 @@ class LlmService {
               addModelTurn: true,
             );
 
-            final followup = await _generateInternal(followupPrompt);
+            final followup = await _generateInternal(
+              followupPrompt,
+              maxTokens: request.maxTokens,
+              temperature: request.temperature,
+              topP: request.topP,
+            );
             return LlmGenerationResponse(
               content: followup.content,
               tokensGenerated: primary.tokensGenerated + followup.tokensGenerated,
@@ -130,13 +150,14 @@ class LlmService {
 
   /// Generate text with streaming (recommended for UI)
   Stream<LlmChunk> generateStream(LlmGenerationRequest request) async* {
-    if (_engine == null || _currentModel == null) {
+    if (_model == null || _currentModel == null) {
       yield const LlmChunk(content: 'Error: No model loaded', isComplete: true);
       return;
     }
 
     try {
-      final prompt = _shouldUseFunctionGemma(request)
+      final useFunctionGemma = _shouldUseFunctionGemma(request);
+      final prompt = useFunctionGemma
           ? _buildFunctionGemmaPrompt(
               userMessage: request.prompt,
               systemPrompt: request.systemPrompt,
@@ -145,10 +166,34 @@ class LlmService {
             )
           : request.prompt;
 
-      await for (final token in _engine!.generate(prompt)) {
-        yield LlmChunk(content: token);
+      final messages = _buildMessages(
+        prompt: prompt,
+        systemPrompt: useFunctionGemma ? null : request.systemPrompt,
+      );
+
+      final controller = StreamController<LlmChunk>();
+      Future<void> run() async {
+        try {
+          await _model!.completion(
+            messages,
+            maxTokens: request.maxTokens,
+            temperature: request.temperature,
+            topP: request.topP / 100.0,
+            onToken: (token) {
+              controller.add(LlmChunk(content: token));
+              return true;
+            },
+          );
+          controller.add(const LlmChunk(content: '', isComplete: true));
+        } catch (e) {
+          controller.add(LlmChunk(content: 'Error: $e', isComplete: true));
+        } finally {
+          await controller.close();
+        }
       }
-      yield const LlmChunk(content: '', isComplete: true);
+
+      run();
+      yield* controller.stream;
     } catch (e) {
       yield LlmChunk(content: 'Error: $e', isComplete: true);
     }
@@ -174,9 +219,9 @@ class LlmService {
 
   /// Unload the current model
   Future<void> unloadModel() async {
-    if (_engine != null) {
-      await _engine!.dispose();
-      _engine = null;
+    if (_model != null) {
+      _model!.dispose();
+      _model = null;
       _currentModel = null;
     }
   }
@@ -184,10 +229,6 @@ class LlmService {
   /// Dispose the service and release all resources
   Future<void> dispose() async {
     await unloadModel();
-    if (_backend != null) {
-      await _backend!.dispose();
-      _backend = null;
-    }
     _isInitialized = false;
   }
 
@@ -216,7 +257,7 @@ class LlmService {
     }
 
     if (_currentModel != null &&
-        _engine != null &&
+        _model != null &&
         _currentModel!.modelPath.toLowerCase().contains('functiongemma')) {
       return true;
     }
@@ -288,24 +329,41 @@ class LlmService {
     }
   }
 
-  Future<LlmGenerationResponse> _generateInternal(String prompt) async {
+  Future<LlmGenerationResponse> _generateInternal(
+    String prompt, {
+    required int maxTokens,
+    required double temperature,
+    required int topP,
+  }) async {
     final stopwatch = Stopwatch()..start();
-    final buffer = StringBuffer();
-    int tokenCount = 0;
-
-    await for (final token in _engine!.generate(prompt)) {
-      buffer.write(token);
-      tokenCount++;
-    }
+    final messages = _buildMessages(prompt: prompt);
+    final result = await _model!.completion(
+      messages,
+      maxTokens: maxTokens,
+      temperature: temperature,
+      topP: topP / 100.0,
+    );
 
     stopwatch.stop();
 
     return LlmGenerationResponse(
-      content: buffer.toString(),
-      tokensGenerated: tokenCount,
+      content: result.text,
+      tokensGenerated: result.tokensPredicted,
       duration: stopwatch.elapsed,
       isComplete: true,
     );
+  }
+
+  List<ChatMessage> _buildMessages({
+    required String prompt,
+    String? systemPrompt,
+  }) {
+    final messages = <ChatMessage>[];
+    if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
+      messages.add(ChatMessage(role: 'system', content: systemPrompt.trim()));
+    }
+    messages.add(ChatMessage(role: 'user', content: prompt));
+    return messages;
   }
 
   bool _shouldUseFunctionGemma(LlmGenerationRequest request) {
