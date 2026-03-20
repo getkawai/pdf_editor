@@ -53,10 +53,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Future<void> _initializeService() async {
-    _analytics.logEvent(
-      name: 'llm_chat_init_start',
-      parameters: {'timestamp': DateTime.now().toIso8601String()},
-    );
     final initialized = await _llmService.initialize();
     if (!initialized) {
       _analytics.logError(
@@ -72,15 +68,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     List<CactusModel> models = [];
     try {
-      _analytics.logEvent(
-        name: 'llm_chat_get_models_start',
-        parameters: {'timestamp': DateTime.now().toIso8601String()},
-      );
       models = await _llmService.getModels();
-      _analytics.logEvent(
-        name: 'llm_chat_get_models_success',
-        parameters: {'count': models.length},
-      );
     } catch (e, st) {
       _analytics.logError(
         errorType: 'llm_get_models_failed',
@@ -119,10 +107,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       return;
     }
 
-    _analytics.logEvent(
-      name: 'llm_chat_load_model_start',
-      parameters: {'model': model.slug},
-    );
     final success = await _llmService.loadModel(
       model,
       onProgress: (progress, status, isError) {
@@ -150,11 +134,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           screen: 'llm_chat',
           metadata: {'model': model.slug},
         );
-      } else {
-        _analytics.logEvent(
-          name: 'llm_chat_load_model_success',
-          parameters: {'model': model.slug},
-        );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -178,14 +157,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
 
     final userMessage = _promptController.text;
-    _analytics.logEvent(
-      name: 'llm_chat_send_start',
-      parameters: {
-        'model': _selectedModelSlug ?? 'unknown',
-        'message_len': userMessage.length,
-        'tools_enabled': _llmService.supportsToolCalling && _enableTools,
-      },
-    );
     setState(() {
       _messages.add({'role': 'user', 'content': userMessage});
       _isLoading = true;
@@ -213,47 +184,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ? _getAllTools()
             : const [],
         onExecuteTool: (name, args) async {
-          _analytics.logEvent(
-            name: 'llm_tool_execute_start',
-            parameters: {'tool': name},
-          );
           var tool = ToolsManager().getTool(name);
           tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
           if (tool != null) {
             final result = await tool.execute(args);
-            _analytics.logEvent(
-              name: 'llm_tool_execute_result',
-              parameters: {
-                'tool': name,
-                'success': result.success,
-                'error': result.errorMessage ?? '',
-              },
-            );
             return {
               'success': result.success.toString(),
               if (result.errorMessage != null) 'error': result.errorMessage!,
               if (result.metadata != null) 'metadata': result.metadata.toString(),
             };
           }
-          _analytics.logError(
-            errorType: 'llm_tool_not_found',
-            errorMessage: 'Tool not found: $name',
-            screen: 'llm_chat',
-          );
           return null;
         },
       );
 
       final response = await _llmService.generate(request);
-      _analytics.logEvent(
-        name: 'llm_chat_response_received',
-        parameters: {
-          'model': _selectedModelSlug ?? 'unknown',
-          'is_complete': response.isComplete,
-          'error': response.errorMessage ?? '',
-          'response_len': response.content.length,
-        },
-      );
 
       // Log AI response
       final latency = _requestStartTime != null
@@ -276,14 +221,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               'role': 'assistant',
               'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
             });
-            _analytics.logEvent(
-              name: 'llm_ui_error_message_added',
-              parameters: {
-                'model': _selectedModelSlug ?? 'unknown',
-                'error': response.errorMessage ?? 'Unknown error',
-              },
-            );
-            
             // Log error
             _analytics.logError(
               errorType: 'llm_generation_error',
@@ -304,14 +241,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
-        _analytics.logEvent(
-          name: 'llm_ui_error_snackbar',
-          parameters: {
-            'model': _selectedModelSlug ?? 'unknown',
-            'error': e.toString(),
-          },
-        );
-        
         // Log error
         _analytics.logError(
           errorType: 'llm_exception',

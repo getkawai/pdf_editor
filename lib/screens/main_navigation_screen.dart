@@ -73,18 +73,5 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _logTabChange(index);
   }
 
-  void _logTabChange(int index) {
-    final label = _tabLabels[index];
-    _analytics.logEvent(
-      name: 'bottom_nav_select',
-      parameters: {
-        'tab_index': index,
-        'tab_name': label,
-      },
-    );
-    _analytics.logScreenView(
-      screenName: 'tab_$label',
-      screenClass: 'MainNavigationScreen',
-    );
-  }
+  void _logTabChange(int index) {}
 }

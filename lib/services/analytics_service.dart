@@ -82,55 +82,39 @@ class AnalyticsService {
   // ============================================================================
 
   Future<void> logOpenPdf({String? source}) async {
-    await logEvent(
-      name: 'open_pdf',
-      parameters: source != null ? {'source': source} : null,
-    );
+    // no-op
   }
 
   Future<void> logCreatePdf() async {
-    await logEvent(name: 'create_pdf');
+    // no-op
   }
 
   Future<void> logUsePdfTool({
     required String toolName,
     String? result,
   }) async {
-    await logEvent(
-      name: 'use_pdf_tool',
-      parameters: result != null
-          ? {'tool_name': toolName, 'result': result}
-          : {'tool_name': toolName},
-    );
+    // no-op
   }
 
   Future<void> logViewPdf({
     String? documentId,
     int? pageCount,
   }) async {
-    final parameters = <String, Object>{};
-    if (documentId != null) parameters['document_id'] = documentId;
-    if (pageCount != null) parameters['page_count'] = pageCount;
-    await logEvent(name: 'view_pdf', parameters: parameters.isEmpty ? null : parameters);
+    // no-op
   }
 
   Future<void> logEditPdf({
     required String editType,
     String? details,
   }) async {
-    final parameters = <String, Object>{'edit_type': editType};
-    if (details != null) parameters['details'] = details;
-    await logEvent(name: 'edit_pdf', parameters: parameters);
+    // no-op
   }
 
   Future<void> logSavePdf({
     String? documentId,
     int? pageCount,
   }) async {
-    final parameters = <String, Object>{};
-    if (documentId != null) parameters['document_id'] = documentId;
-    if (pageCount != null) parameters['page_count'] = pageCount;
-    await logEvent(name: 'save_pdf', parameters: parameters.isEmpty ? null : parameters);
+    // no-op
   }
 
   // ============================================================================
@@ -138,7 +122,7 @@ class AnalyticsService {
   // ============================================================================
 
   Future<void> logOpenAiChat() async {
-    await logEvent(name: 'open_ai_chat');
+    // no-op
   }
 
   Future<void> logAiMessage({
@@ -146,10 +130,7 @@ class AnalyticsService {
     int? messageLength,
     String? model,
   }) async {
-    final parameters = <String, Object>{'message_type': messageType};
-    if (messageLength != null) parameters['message_length'] = messageLength;
-    if (model != null) parameters['model'] = model;
-    await logEvent(name: 'ai_message', parameters: parameters);
+    // no-op
   }
 
   Future<void> logAiResponse({
@@ -157,11 +138,7 @@ class AnalyticsService {
     Duration? latency,
     String? model,
   }) async {
-    final parameters = <String, Object>{};
-    if (responseLength != null) parameters['response_length'] = responseLength;
-    if (latency != null) parameters['latency_ms'] = latency.inMilliseconds;
-    if (model != null) parameters['model'] = model;
-    await logEvent(name: 'ai_response', parameters: parameters.isEmpty ? null : parameters);
+    // no-op
   }
 
   // ============================================================================
