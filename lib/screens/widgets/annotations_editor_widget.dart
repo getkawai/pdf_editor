@@ -19,7 +19,8 @@ class AnnotationsEditorWidget extends StatefulWidget {
   });
 
   @override
-  State<AnnotationsEditorWidget> createState() => _AnnotationsEditorWidgetState();
+  State<AnnotationsEditorWidget> createState() =>
+      _AnnotationsEditorWidgetState();
 }
 
 class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
@@ -55,9 +56,9 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking PDF: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking PDF: $e')));
       }
     }
   }
@@ -151,7 +152,11 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
                   if (_pdfPath != null) ...[
                     Row(
                       children: [
-                        const Icon(Icons.picture_as_pdf, color: Colors.red, size: 32),
+                        const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.red,
+                          size: 32,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -192,7 +197,9 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
                     onChanged: (value) {
                       _pageNumber = int.tryParse(value) ?? 1;
                     },
-                    controller: TextEditingController(text: _pageNumber.toString()),
+                    controller: TextEditingController(
+                      text: _pageNumber.toString(),
+                    ),
                   ),
                 ],
               ),
@@ -213,7 +220,8 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
               DropdownMenuItem(value: 'rectangle', child: Text('Rectangle')),
               DropdownMenuItem(value: 'circle', child: Text('Circle')),
             ],
-            onChanged: (value) => setState(() => _selectedAnnotationType = value ?? 'text'),
+            onChanged: (value) =>
+                setState(() => _selectedAnnotationType = value ?? 'text'),
           ),
           const SizedBox(height: 16),
 
@@ -232,34 +240,44 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
           ],
 
           // Color selector
-          const Text('Color:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Color:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: (_selectedAnnotationType == 'highlight' ? _highlightColors : [
-              Colors.red,
-              Colors.blue,
-              Colors.green,
-              Colors.orange,
-              Colors.purple,
-              Colors.black,
-            ]).map((color) {
-              return GestureDetector(
-                onTap: () => setState(() => _selectedColor = color),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _selectedColor == color ? Colors.black : Colors.grey,
-                      width: _selectedColor == color ? 3 : 1,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+            children:
+                (_selectedAnnotationType == 'highlight'
+                        ? _highlightColors
+                        : [
+                            Colors.red,
+                            Colors.blue,
+                            Colors.green,
+                            Colors.orange,
+                            Colors.purple,
+                            Colors.black,
+                          ])
+                    .map((color) {
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedColor = color),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _selectedColor == color
+                                  ? Colors.black
+                                  : Colors.grey,
+                              width: _selectedColor == color ? 3 : 1,
+                            ),
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(),
           ),
           const SizedBox(height: 16),
 
@@ -310,12 +328,12 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
                       height: 30,
                       decoration: BoxDecoration(
                         color: Color(annotation['color'] as int),
-                        shape: annotation['type'] == 'circle' 
-                            ? BoxShape.circle 
+                        shape: annotation['type'] == 'circle'
+                            ? BoxShape.circle
                             : BoxShape.rectangle,
                       ),
                     ),
-                    title: Text('${annotation['type'].toString().toUpperCase()}'),
+                    title: Text(annotation['type'].toString().toUpperCase()),
                     subtitle: Text(
                       annotation['text']?.isNotEmpty == true
                           ? annotation['text']

@@ -39,10 +39,7 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
         _items[_editingIndex!]['text'] = _itemController.text;
         _editingIndex = null;
       } else {
-        _items.add({
-          'text': _itemController.text,
-          'subItems': <String>[],
-        });
+        _items.add({'text': _itemController.text, 'subItems': <String>[]});
       }
       _itemController.clear();
     });
@@ -85,8 +82,7 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
               onPressed: () {
                 if (subItemController.text.isNotEmpty) {
                   setState(() {
-                    _items[parentIndex]['subItems']
-                        .add(subItemController.text);
+                    _items[parentIndex]['subItems'].add(subItemController.text);
                   });
                 }
                 Navigator.pop(context);
@@ -181,21 +177,24 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
                   Row(
                     children: [
                       Expanded(
-                        child: RadioListTile<bool>(
-                          title: const Text('Bulleted'),
-                          subtitle: const Text('• Item 1\n• Item 2'),
-                          value: false,
+                        child: RadioGroup<bool>(
                           groupValue: _isOrdered,
-                          onChanged: (value) => setState(() => _isOrdered = value ?? false),
-                        ),
-                      ),
-                      Expanded(
-                        child: RadioListTile<bool>(
-                          title: const Text('Numbered'),
-                          subtitle: const Text('1. Item 1\n2. Item 2'),
-                          value: true,
-                          groupValue: _isOrdered,
-                          onChanged: (value) => setState(() => _isOrdered = value ?? false),
+                          onChanged: (value) =>
+                              setState(() => _isOrdered = value ?? false),
+                          child: Column(
+                            children: [
+                              RadioListTile<bool>(
+                                title: const Text('Bulleted'),
+                                subtitle: const Text('• Item 1\n• Item 2'),
+                                value: false,
+                              ),
+                              RadioListTile<bool>(
+                                title: const Text('Numbered'),
+                                subtitle: const Text('1. Item 1\n2. Item 2'),
+                                value: true,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -214,7 +213,7 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _editingIndex != null 
+                    _editingIndex != null
                         ? 'Edit Item #${_editingIndex! + 1}'
                         : 'Add New Item',
                     style: const TextStyle(
@@ -240,8 +239,12 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: _addItem,
-                        icon: Icon(_editingIndex != null ? Icons.save : Icons.add),
-                        label: Text(_editingIndex != null ? 'Save' : 'Add Item'),
+                        icon: Icon(
+                          _editingIndex != null ? Icons.save : Icons.add,
+                        ),
+                        label: Text(
+                          _editingIndex != null ? 'Save' : 'Add Item',
+                        ),
                       ),
                       if (_editingIndex != null) ...[
                         const SizedBox(width: 8),
@@ -275,8 +278,24 @@ class _ListsEditorWidgetState extends State<ListsEditorWidget> {
                 padding: const EdgeInsets.all(16),
                 constraints: const BoxConstraints(minHeight: 100),
                 child: _isOrdered
-                    ? OrderedListView(items: _items, onEdit: _editItem, onDelete: _removeItem, onMoveUp: _moveUp, onMoveDown: _moveDown, onAddSubItem: _addSubItem, onRemoveSubItem: _removeSubItem)
-                    : UnorderedListView(items: _items, onEdit: _editItem, onDelete: _removeItem, onMoveUp: _moveUp, onMoveDown: _moveDown, onAddSubItem: _addSubItem, onRemoveSubItem: _removeSubItem),
+                    ? OrderedListView(
+                        items: _items,
+                        onEdit: _editItem,
+                        onDelete: _removeItem,
+                        onMoveUp: _moveUp,
+                        onMoveDown: _moveDown,
+                        onAddSubItem: _addSubItem,
+                        onRemoveSubItem: _removeSubItem,
+                      )
+                    : UnorderedListView(
+                        items: _items,
+                        onEdit: _editItem,
+                        onDelete: _removeItem,
+                        onMoveUp: _moveUp,
+                        onMoveDown: _moveDown,
+                        onAddSubItem: _addSubItem,
+                        onRemoveSubItem: _removeSubItem,
+                      ),
               ),
             ),
             const SizedBox(height: 16),
@@ -385,11 +404,21 @@ class UnorderedListView extends StatelessWidget {
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) {
                     switch (value) {
-                      case 0: onEdit(index); break;
-                      case 1: onDelete(index); break;
-                      case 2: onMoveUp(index); break;
-                      case 3: onMoveDown(index); break;
-                      case 4: onAddSubItem(index); break;
+                      case 0:
+                        onEdit(index);
+                        break;
+                      case 1:
+                        onDelete(index);
+                        break;
+                      case 2:
+                        onMoveUp(index);
+                        break;
+                      case 3:
+                        onMoveDown(index);
+                        break;
+                      case 4:
+                        onAddSubItem(index);
+                        break;
                     }
                   },
                   itemBuilder: (context) => [
@@ -408,14 +437,19 @@ class UnorderedListView extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: (item['subItems'] as List).asMap().entries.map((subEntry) {
+                  children: (item['subItems'] as List).asMap().entries.map((
+                    subEntry,
+                  ) {
                     final subIndex = subEntry.key;
                     final subItem = subEntry.value;
                     return Row(
                       children: [
                         const Text('◦ ', style: TextStyle(fontSize: 16)),
                         Expanded(
-                          child: Text(subItem, style: const TextStyle(fontSize: 14)),
+                          child: Text(
+                            subItem,
+                            style: const TextStyle(fontSize: 14),
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 18),
@@ -472,7 +506,10 @@ class OrderedListView extends StatelessWidget {
                   width: 30,
                   child: Text(
                     '${index + 1}.',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -485,11 +522,21 @@ class OrderedListView extends StatelessWidget {
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) {
                     switch (value) {
-                      case 0: onEdit(index); break;
-                      case 1: onDelete(index); break;
-                      case 2: onMoveUp(index); break;
-                      case 3: onMoveDown(index); break;
-                      case 4: onAddSubItem(index); break;
+                      case 0:
+                        onEdit(index);
+                        break;
+                      case 1:
+                        onDelete(index);
+                        break;
+                      case 2:
+                        onMoveUp(index);
+                        break;
+                      case 3:
+                        onMoveDown(index);
+                        break;
+                      case 4:
+                        onAddSubItem(index);
+                        break;
                     }
                   },
                   itemBuilder: (context) => [
@@ -508,14 +555,19 @@ class OrderedListView extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: (item['subItems'] as List).asMap().entries.map((subEntry) {
+                  children: (item['subItems'] as List).asMap().entries.map((
+                    subEntry,
+                  ) {
                     final subIndex = subEntry.key;
                     final subItem = subEntry.value;
                     return Row(
                       children: [
                         const Text('◦ ', style: TextStyle(fontSize: 16)),
                         Expanded(
-                          child: Text(subItem, style: const TextStyle(fontSize: 14)),
+                          child: Text(
+                            subItem,
+                            style: const TextStyle(fontSize: 14),
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 18),

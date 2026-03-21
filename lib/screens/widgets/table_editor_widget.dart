@@ -82,9 +82,11 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
   }
 
   Future<void> _createTable() async {
-    final headers = _hasHeader && _tableData.isNotEmpty ? _tableData.first : null;
-    final data = _hasHeader && _tableData.length > 1 
-        ? _tableData.sublist(1) 
+    final headers = _hasHeader && _tableData.isNotEmpty
+        ? _tableData.first
+        : null;
+    final data = _hasHeader && _tableData.length > 1
+        ? _tableData.sublist(1)
         : _tableData;
 
     widget.onExecute({
@@ -119,17 +121,28 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedStyle,
-                  decoration: const InputDecoration(
-                    labelText: 'Style',
-                  ),
+                  initialValue: _selectedStyle,
+                  decoration: const InputDecoration(labelText: 'Style'),
                   items: const [
-                    DropdownMenuItem(value: 'listtable1', child: Text('Style 1')),
-                    DropdownMenuItem(value: 'listtable2', child: Text('Style 2')),
-                    DropdownMenuItem(value: 'listtable3', child: Text('Style 3')),
-                    DropdownMenuItem(value: 'listtable4', child: Text('Style 4 (Default)')),
+                    DropdownMenuItem(
+                      value: 'listtable1',
+                      child: Text('Style 1'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'listtable2',
+                      child: Text('Style 2'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'listtable3',
+                      child: Text('Style 3'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'listtable4',
+                      child: Text('Style 4 (Default)'),
+                    ),
                   ],
-                  onChanged: (value) => setState(() => _selectedStyle = value ?? 'listtable4'),
+                  onChanged: (value) =>
+                      setState(() => _selectedStyle = value ?? 'listtable4'),
                 ),
               ),
               const SizedBox(width: 16),
