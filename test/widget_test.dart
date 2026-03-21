@@ -13,7 +13,7 @@ import 'package:pdf_editor/main.dart';
 void main() {
   testWidgets('PDF Editor initial UI test', (WidgetTester tester) async {
     await tester.pumpWidget(const PdfEditorApp());
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('PDF Editor'), findsAtLeastNWidgets(1));
 
