@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../flutter_ai_toolkit/src/styles/chat_input_style.dart';
 import '../flutter_ai_toolkit/src/styles/llm_chat_view_style.dart';
@@ -197,6 +198,46 @@ class AppTheme {
         iconDecoration: BoxDecoration(
           color: colorScheme.primary.withValues(alpha: 0.12),
           shape: BoxShape.circle,
+        ),
+        markdownStyle: MarkdownStyleSheet.fromTheme(theme).copyWith(
+          p: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          code: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h1: theme.textTheme.headlineSmall?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h2: theme.textTheme.titleLarge?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h3: theme.textTheme.titleMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h4: theme.textTheme.titleSmall?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h5: theme.textTheme.bodyLarge?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          h6: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          strong: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+          em: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+            fontStyle: FontStyle.italic,
+          ),
+          blockquote: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
+          listBullet: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
         ),
         decoration: BoxDecoration(
           color: surfaceAlt,
