@@ -253,6 +253,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       );
     }
 
+    if (_isModelLoaded) {
+      return const SizedBox.shrink();
+    }
+
     final statusText = _isModelLoaded
         ? 'Model ready: ${_loadedModelSlug ?? _targetModelSlug}'
         : _isLoadingModels || _isLoading
