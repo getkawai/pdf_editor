@@ -397,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (canNavigateTabs)
                 OutlinedButton.icon(
-                  onPressed: () => widget.onNavigateToTab!(1),
+                  onPressed: () => widget.onNavigateToTab!(2),
                   icon: const Icon(Icons.build),
                   label: const Text('Explore Tools'),
                 ),
