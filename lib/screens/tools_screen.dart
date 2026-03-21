@@ -291,6 +291,53 @@ class _ToolsScreenState extends State<ToolsScreen> {
     );
   }
 
+  Future<T?> _showToolSheet<T>({
+    required String title,
+    String? subtitle,
+    required Widget content,
+    required List<Widget> actions,
+  }) async {
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 8,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            if (subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+            ],
+            const SizedBox(height: 16),
+            content,
+            const SizedBox(height: 16),
+            Row(
+              children: actions
+                  .map(
+                    (action) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: action,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _onSearchChanged() {
     setState(() {
       _query = _searchController.text.trim();
@@ -445,47 +492,46 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create PDF from Text'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title (Optional)',
-                border: OutlineInputBorder(),
-              ),
+    final result = await _showToolSheet<Map<String, dynamic>>(
+      title: 'Create PDF from Text',
+      subtitle: 'Write content and export it as a PDF document.',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: titleController,
+            decoration: const InputDecoration(
+              labelText: 'Title (Optional)',
+              prefixIcon: Icon(Icons.title),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: textController,
-              decoration: const InputDecoration(
-                labelText: 'Content',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 8,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, {
-                'title': titleController.text,
-                'text': textController.text,
-              });
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: textController,
+            decoration: const InputDecoration(
+              labelText: 'Content',
+              alignLabelWithHint: true,
+              prefixIcon: Icon(Icons.subject),
+            ),
+            maxLines: 8,
           ),
         ],
       ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context, {
+              'title': titleController.text,
+              'text': textController.text,
+            });
+          },
+          child: const Text('Create'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -505,44 +551,45 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
         final titleController = TextEditingController();
 
-        final dialogResult = await showDialog<Map<String, dynamic>>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Create PDF from Image'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.file(
+        final dialogResult = await _showToolSheet<Map<String, dynamic>>(
+          title: 'Create PDF from Image',
+          subtitle: 'Preview your image before exporting.',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
                   imageFile,
                   height: 200,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title (Optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, {
-                    'title': titleController.text,
-                    'imageData': imageData,
-                  });
-                },
-                child: const Text('Create'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title (Optional)',
+                  prefixIcon: Icon(Icons.title),
+                ),
               ),
             ],
           ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'title': titleController.text,
+                  'imageData': imageData,
+                });
+              },
+              child: const Text('Create'),
+            ),
+          ],
         );
 
         if (dialogResult != null && mounted) {
@@ -560,22 +607,115 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   Future<void> _openMergePdfsTool(PdfTool tool) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        allowMultiple: true,
+      if (!mounted) return;
+      List<PlatformFile> selectedFiles = [];
+
+      final picked = await showModalBottomSheet<List<PlatformFile>>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Merge PDFs',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Select at least 2 files to combine.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      FilePickerResult? result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf'],
+                        allowMultiple: true,
+                      );
+                      if (result != null) {
+                        setState(() {
+                          selectedFiles = result.files;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open),
+                    label: Text(
+                      selectedFiles.isEmpty
+                          ? 'Select PDF files'
+                          : 'Selected ${selectedFiles.length} files',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (selectedFiles.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: selectedFiles
+                            .map((file) => Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  child: Text(
+                                    file.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: selectedFiles.length < 2
+                              ? null
+                              : () => Navigator.pop(context, selectedFiles),
+                          child: const Text('Merge'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       );
 
-      if (result != null && mounted) {
-        List<Uint8List> pdfDataList = [];
-        
-        for (final file in result.files) {
+      if (picked != null && picked.isNotEmpty) {
+        final pdfDataList = <Uint8List>[];
+        for (final file in picked) {
           if (file.path != null) {
-            final pdfData = await File(file.path!).readAsBytes();
-            pdfDataList.add(pdfData);
+            pdfDataList.add(await File(file.path!).readAsBytes());
           }
         }
-
         if (pdfDataList.isNotEmpty) {
           await _executeToolAndShowResult(tool, {'pdfDataList': pdfDataList});
         }
@@ -591,18 +731,107 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   Future<void> _openCompressPdfTool(PdfTool tool) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
+      if (!mounted) return;
+      PlatformFile? selectedFile;
+      String level = 'medium';
+
+      final picked = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Compress PDF',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Choose a compression level before exporting.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      FilePickerResult? result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf'],
+                      );
+                      if (result != null) {
+                        setState(() {
+                          selectedFile = result.files.single;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open),
+                    label: Text(
+                      selectedFile == null
+                          ? 'Select PDF file'
+                          : selectedFile!.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: level,
+                    decoration: const InputDecoration(
+                      labelText: 'Compression level',
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'low', child: Text('Low (Best quality)')),
+                      DropdownMenuItem(value: 'medium', child: Text('Medium (Balanced)')),
+                      DropdownMenuItem(value: 'high', child: Text('High (Smallest size)')),
+                    ],
+                    onChanged: (value) => setState(() => level = value ?? 'medium'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: selectedFile == null
+                              ? null
+                              : () => Navigator.pop(context, {
+                                    'file': selectedFile,
+                                    'level': level,
+                                  }),
+                          child: const Text('Compress'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       );
 
-      if (result != null && mounted) {
-        final file = File(result.files.single.path!);
+      if (picked != null && picked['file'] != null && mounted) {
+        final PlatformFile fileRef = picked['file'] as PlatformFile;
+        final file = File(fileRef.path!);
         final pdfData = await file.readAsBytes();
-
         await _executeToolAndShowResult(tool, {
           'pdfData': pdfData,
-          'compressionLevel': 'medium',
+          'compressionLevel': picked['level'] as String,
         });
       }
     } catch (e) {
@@ -691,67 +920,66 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Header & Footer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: headerController,
-              decoration: const InputDecoration(
-                labelText: 'Header text',
-                border: OutlineInputBorder(),
-              ),
+    final result = await _showToolSheet<Map<String, dynamic>>(
+      title: 'Header & Footer',
+      subtitle: 'Add consistent headers and footers to a new PDF.',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: headerController,
+            decoration: const InputDecoration(
+              labelText: 'Header text',
+              prefixIcon: Icon(Icons.horizontal_rule),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: footerController,
-              decoration: const InputDecoration(
-                labelText: 'Footer text',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: bodyController,
-              decoration: const InputDecoration(
-                labelText: 'Body text (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 4,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: pageCountController,
-              decoration: const InputDecoration(
-                labelText: 'Page count',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              final int pageCount = int.tryParse(pageCountController.text) ?? 1;
-              Navigator.pop(context, {
-                'headerText': headerController.text,
-                'footerText': footerController.text,
-                'bodyText': bodyController.text,
-                'pageCount': pageCount,
-              });
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: footerController,
+            decoration: const InputDecoration(
+              labelText: 'Footer text',
+              prefixIcon: Icon(Icons.horizontal_rule),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: bodyController,
+            decoration: const InputDecoration(
+              labelText: 'Body text (optional)',
+              alignLabelWithHint: true,
+              prefixIcon: Icon(Icons.notes),
+            ),
+            maxLines: 4,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: pageCountController,
+            decoration: const InputDecoration(
+              labelText: 'Page count',
+              prefixIcon: Icon(Icons.layers),
+            ),
+            keyboardType: TextInputType.number,
           ),
         ],
       ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final int pageCount = int.tryParse(pageCountController.text) ?? 1;
+            Navigator.pop(context, {
+              'headerText': headerController.text,
+              'footerText': footerController.text,
+              'bodyText': bodyController.text,
+              'pageCount': pageCount,
+            });
+          },
+          child: const Text('Create'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -791,24 +1019,43 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('RTL / Unicode Text'),
-          content: Column(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            top: 8,
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                'RTL / Unicode Text',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Support right-to-left languages with optional custom font.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
               SwitchListTile(
                 title: const Text('Right-to-left'),
                 value: isRtl,
                 onChanged: (value) => setState(() => isRtl = value),
+                contentPadding: EdgeInsets.zero,
               ),
               TextField(
                 controller: titleController,
                 decoration: const InputDecoration(
                   labelText: 'Title (optional)',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.title),
                 ),
               ),
               const SizedBox(height: 12),
@@ -816,7 +1063,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 controller: textController,
                 decoration: const InputDecoration(
                   labelText: 'Text',
-                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                  prefixIcon: Icon(Icons.subject),
                 ),
                 maxLines: 5,
               ),
@@ -848,25 +1096,32 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pop(context, {
+                          'title': titleController.text,
+                          'text': textController.text,
+                          'isRtl': isRtl,
+                          'fontData': fontData,
+                        });
+                      },
+                      child: const Text('Create'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'title': titleController.text,
-                  'text': textController.text,
-                  'isRtl': isRtl,
-                  'fontData': fontData,
-                });
-              },
-              child: const Text('Create'),
-            ),
-          ],
         ),
       ),
     );
@@ -882,46 +1137,44 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create Hyperlink'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'URL',
-                border: OutlineInputBorder(),
-              ),
+    final result = await _showToolSheet<Map<String, dynamic>>(
+      title: 'Create Hyperlink',
+      subtitle: 'Add a tappable link inside the PDF.',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: urlController,
+            decoration: const InputDecoration(
+              labelText: 'URL',
+              prefixIcon: Icon(Icons.link),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              decoration: const InputDecoration(
-                labelText: 'Link text (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, {
-                'url': urlController.text,
-                'text': textController.text,
-              });
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: textController,
+            decoration: const InputDecoration(
+              labelText: 'Link text (optional)',
+              prefixIcon: Icon(Icons.text_fields),
+            ),
           ),
         ],
       ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context, {
+              'url': urlController.text,
+              'text': textController.text,
+            });
+          },
+          child: const Text('Create'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -943,49 +1196,47 @@ class _ToolsScreenState extends State<ToolsScreen> {
       final TextEditingController titleController = TextEditingController();
       final TextEditingController pageController = TextEditingController(text: '1');
 
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Add Bookmark'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Bookmark title',
-                  border: OutlineInputBorder(),
-                ),
+      final result = await _showToolSheet<Map<String, dynamic>>(
+        title: 'Add Bookmark',
+        subtitle: 'Create a bookmark for quick navigation.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: 'Bookmark title',
+                prefixIcon: Icon(Icons.bookmark),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: pageController,
-                decoration: const InputDecoration(
-                  labelText: 'Page number',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                final int pageNumber = int.tryParse(pageController.text) ?? 1;
-                Navigator.pop(context, {
-                  'pdfData': pdfData,
-                  'title': titleController.text,
-                  'pageNumber': pageNumber,
-                });
-              },
-              child: const Text('Apply'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pageController,
+              decoration: const InputDecoration(
+                labelText: 'Page number',
+                prefixIcon: Icon(Icons.filter_1),
+              ),
+              keyboardType: TextInputType.number,
             ),
           ],
         ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final int pageNumber = int.tryParse(pageController.text) ?? 1;
+              Navigator.pop(context, {
+                'pdfData': pdfData,
+                'title': titleController.text,
+                'pageNumber': pageNumber,
+              });
+            },
+            child: const Text('Apply'),
+          ),
+        ],
       );
 
       if (result != null && mounted) {
@@ -1018,42 +1269,44 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
       final TextEditingController descController = TextEditingController();
 
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Add Attachment'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('File: ${attachmentPick.files.single.name}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+      final result = await _showToolSheet<Map<String, dynamic>>(
+        title: 'Add Attachment',
+        subtitle: 'Embed an extra file inside the PDF.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'File: ${attachmentPick.files.single.name}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'pdfData': pdfData,
-                  'attachmentData': attachmentData,
-                  'fileName': attachmentPick.files.single.name,
-                  'description': descController.text,
-                });
-              },
-              child: const Text('Attach'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                prefixIcon: Icon(Icons.note),
+              ),
             ),
           ],
         ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'pdfData': pdfData,
+                'attachmentData': attachmentData,
+                'fileName': attachmentPick.files.single.name,
+                'description': descController.text,
+              });
+            },
+            child: const Text('Attach'),
+          ),
+        ],
       );
 
       if (result != null && mounted) {
@@ -1082,19 +1335,37 @@ class _ToolsScreenState extends State<ToolsScreen> {
       final TextEditingController ownerController = TextEditingController();
       String algorithm = 'aes256';
 
-      final result = await showDialog<Map<String, dynamic>>(
+      final result = await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
         builder: (context) => StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('Encrypt PDF'),
-            content: Column(
+          builder: (context, setState) => Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              top: 8,
+            ),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  'Encrypt PDF',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Protect the document with user and owner passwords.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: userController,
                   decoration: const InputDecoration(
                     labelText: 'User password',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
                   ),
                   obscureText: true,
                 ),
@@ -1103,7 +1374,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   controller: ownerController,
                   decoration: const InputDecoration(
                     labelText: 'Owner password',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.admin_panel_settings),
                   ),
                   obscureText: true,
                 ),
@@ -1120,28 +1391,35 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   onChanged: (value) => setState(() => algorithm = value ?? 'aes256'),
                   decoration: const InputDecoration(
                     labelText: 'Algorithm',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.security),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.pop(context, {
+                            'pdfData': pdfData,
+                            'userPassword': userController.text,
+                            'ownerPassword': ownerController.text,
+                            'algorithm': algorithm,
+                          });
+                        },
+                        child: const Text('Encrypt'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, {
-                    'pdfData': pdfData,
-                    'userPassword': userController.text,
-                    'ownerPassword': ownerController.text,
-                    'algorithm': algorithm,
-                  });
-                },
-                child: const Text('Encrypt'),
-              ),
-            ],
           ),
         ),
       );
@@ -1170,34 +1448,32 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
       final TextEditingController passwordController = TextEditingController();
 
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Decrypt PDF'),
-          content: TextField(
-            controller: passwordController,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
-            ),
-            obscureText: true,
+      final result = await _showToolSheet<Map<String, dynamic>>(
+        title: 'Decrypt PDF',
+        subtitle: 'Enter the password to unlock the file.',
+        content: TextField(
+          controller: passwordController,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            prefixIcon: Icon(Icons.lock_open),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'pdfData': pdfData,
-                  'password': passwordController.text,
-                });
-              },
-              child: const Text('Decrypt'),
-            ),
-          ],
+          obscureText: true,
         ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'pdfData': pdfData,
+                'password': passwordController.text,
+              });
+            },
+            child: const Text('Decrypt'),
+          ),
+        ],
       );
 
       if (result != null && mounted) {
@@ -1220,14 +1496,32 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('PDF/A Conformance'),
-          content: Column(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            top: 8,
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                'PDF/A Conformance',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Generate a PDF/A compliant document.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: level,
                 items: const [
@@ -1238,7 +1532,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 onChanged: (value) => setState(() => level = value ?? 'a1b'),
                 decoration: const InputDecoration(
                   labelText: 'Conformance level',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.verified),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1246,7 +1540,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 controller: textController,
                 decoration: const InputDecoration(
                   labelText: 'Text',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.text_snippet),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1276,24 +1570,31 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pop(context, {
+                          'conformanceLevel': level,
+                          'text': textController.text,
+                          'fontData': fontData,
+                        });
+                      },
+                      child: const Text('Create'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {
-                  'conformanceLevel': level,
-                  'text': textController.text,
-                  'fontData': fontData,
-                });
-              },
-              child: const Text('Create'),
-            ),
-          ],
         ),
       ),
     );
@@ -1306,22 +1607,20 @@ class _ToolsScreenState extends State<ToolsScreen> {
   Future<void> _openDigitalSignatureTool(PdfTool tool) async {
     if (!mounted) return;
 
-    final bool? useExisting = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sign PDF'),
-        content: const Text('Do you want to sign an existing PDF?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Create New'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Use Existing'),
-          ),
-        ],
-      ),
+    final bool? useExisting = await _showToolSheet<bool>(
+      title: 'Sign PDF',
+      subtitle: 'Choose whether to sign an existing file or create a new one.',
+      content: const SizedBox.shrink(),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Create New'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Use Existing'),
+        ),
+      ],
     );
 
     if (useExisting == null || !mounted) return;
@@ -1347,51 +1646,47 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController reasonController = TextEditingController();
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Certificate Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Certificate: ${pfxPick.files.single.name}'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Certificate password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
+    final result = await _showToolSheet<Map<String, dynamic>>(
+      title: 'Certificate Details',
+      subtitle: pfxPick.files.single.name,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: passwordController,
+            decoration: const InputDecoration(
+              labelText: 'Certificate password',
+              prefixIcon: Icon(Icons.password),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            obscureText: true,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, {
-                'pdfData': pdfData,
-                'pfxData': pfxData,
-                'password': passwordController.text,
-                'reason': reasonController.text,
-              });
-            },
-            child: const Text('Sign'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: reasonController,
+            decoration: const InputDecoration(
+              labelText: 'Reason (optional)',
+              prefixIcon: Icon(Icons.notes),
+            ),
           ),
         ],
       ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context, {
+              'pdfData': pdfData,
+              'pfxData': pfxData,
+              'password': passwordController.text,
+              'reason': reasonController.text,
+            });
+          },
+          child: const Text('Sign'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -1475,53 +1770,47 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
     if (!mounted) return;
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('AI PDF Assistant'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter a prompt to generate PDF content using AI.',
-              style: TextStyle(fontSize: 14),
+    final result = await _showToolSheet<Map<String, dynamic>>(
+      title: 'AI PDF Assistant',
+      subtitle: 'Generate content from a prompt, ready for export.',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: titleController,
+            decoration: const InputDecoration(
+              labelText: 'Title (Optional)',
+              prefixIcon: Icon(Icons.title),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: promptController,
-              decoration: const InputDecoration(
-                labelText: 'Prompt',
-                hintText: 'e.g., Write an article about climate change',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 5,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, {
-                'title': titleController.text,
-                'prompt': promptController.text,
-              });
-            },
-            child: const Text('Generate'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: promptController,
+            decoration: const InputDecoration(
+              labelText: 'Prompt',
+              hintText: 'e.g., Write an article about climate change',
+              alignLabelWithHint: true,
+              prefixIcon: Icon(Icons.auto_awesome),
+            ),
+            maxLines: 5,
           ),
         ],
       ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context, {
+              'title': titleController.text,
+              'prompt': promptController.text,
+            });
+          },
+          child: const Text('Generate'),
+        ),
+      ],
     );
 
     if (result != null && mounted) {
@@ -1540,13 +1829,20 @@ class _ToolsScreenState extends State<ToolsScreen> {
         final file = File(result.files.single.path!);
         final pdfData = await file.readAsBytes();
 
-        final summaryType = await showDialog<String>(
+        final summaryType = await showModalBottomSheet<String>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Summary Type'),
-            content: Column(
+          showDragHandle: true,
+          builder: (context) => Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  'Summary Type',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
                 ListTile(
                   title: const Text('Brief'),
                   onTap: () => Navigator.pop(context, 'brief'),
