@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../flutter_ai_toolkit/src/styles/chat_input_style.dart';
+import '../flutter_ai_toolkit/src/styles/llm_chat_view_style.dart';
+import '../flutter_ai_toolkit/src/styles/llm_message_style.dart';
+import '../flutter_ai_toolkit/src/styles/suggestion_style.dart';
+import '../flutter_ai_toolkit/src/styles/user_message_style.dart';
 
 class AppTheme {
   static const Color _seed = Color(0xFF0D9488);
@@ -161,6 +166,70 @@ class AppTheme {
       labelLarge: body.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
       labelMedium: body.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
       labelSmall: body.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+    );
+  }
+
+  static LlmChatViewStyle chatStyle(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final outline = colorScheme.outlineVariant;
+    final surface = colorScheme.surface;
+    final surfaceAlt = colorScheme.surfaceContainerHighest;
+
+    return LlmChatViewStyle(
+      backgroundColor: surface,
+      menuColor: surface,
+      progressIndicatorColor: colorScheme.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      messageSpacing: 8,
+      userMessageStyle: UserMessageStyle(
+        textStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onPrimaryContainer,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      llmMessageStyle: LlmMessageStyle(
+        icon: Icons.smart_toy,
+        iconColor: colorScheme.primary,
+        iconDecoration: BoxDecoration(
+          color: colorScheme.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        decoration: BoxDecoration(
+          color: surfaceAlt,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: outline),
+        ),
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+      ),
+      chatInputStyle: ChatInputStyle(
+        textStyle: theme.textTheme.bodyMedium,
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.hintColor,
+        ),
+        hintText: 'Tulis pesan...',
+        backgroundColor: surface,
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: outline),
+        ),
+      ),
+      suggestionStyle: SuggestionStyle(
+        textStyle: theme.textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSecondaryContainer,
+          fontWeight: FontWeight.w600,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: outline),
+        ),
+      ),
     );
   }
 }

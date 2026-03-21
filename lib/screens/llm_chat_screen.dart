@@ -4,6 +4,7 @@ import '../flutter_ai_toolkit/src/providers/implementations/local_llm_provider.d
 import '../flutter_ai_toolkit/src/views/llm_chat_view/llm_chat_view.dart';
 import '../llm/llm.dart';
 import '../services/analytics_service.dart';
+import '../theme/app_theme.dart';
 
 /// Screen for interacting with LLM chat using flutter_ai_toolkit's LlmChatView
 class LlmChatScreen extends StatefulWidget {
@@ -172,6 +173,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             child: _isModelLoaded && _provider != null
                 ? LlmChatView(
                     provider: _provider!,
+                    style: AppTheme.chatStyle(context),
                     enableAttachments: true,
                     enableVoiceNotes: false,
                     welcomeMessage:
