@@ -316,13 +316,14 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create PDF'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildHeaderCard(context),
+            const SizedBox(height: 20),
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -333,9 +334,14 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Select Content Type:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              'Choose a starting point',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add text, image, or signature to generate a new PDF.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
             _buildToolCard(
@@ -355,8 +361,9 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
             _buildToolCard(
               icon: Icons.edit,
               title: 'Add Signature',
-              description: 'Draw and add your signature',
+              description: 'Signature pad coming soon',
               onTap: _showAddSignatureDialog,
+              isDisabled: true,
             ),
             const SizedBox(height: 24),
             if (_selectedImagePath != null)
@@ -400,12 +407,13 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
     required String title,
     required String description,
     required VoidCallback onTap,
+    bool isDisabled = false,
   }) {
     return Card(
       elevation: 2,
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        onTap: isDisabled ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -414,11 +422,13 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   icon,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: isDisabled
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                      : Theme.of(context).colorScheme.primary,
                   size: 28,
                 ),
               ),
@@ -439,7 +449,9 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
                       description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: isDisabled
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -447,11 +459,56 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey.shade400,
+                color: isDisabled ? Colors.grey.shade300 : Colors.grey.shade400,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.note_add,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Create a clean document fast',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Start with a title, then add content.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

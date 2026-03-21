@@ -102,12 +102,13 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildHeaderCard(context),
+          const SizedBox(height: 16),
           // Title input
           TextField(
             controller: _titleController,
             decoration: const InputDecoration(
               labelText: 'Table Title (Optional)',
-              border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.title),
             ),
           ),
@@ -121,7 +122,6 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
                   value: _selectedStyle,
                   decoration: const InputDecoration(
                     labelText: 'Style',
-                    border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'listtable1', child: Text('Style 1')),
@@ -174,8 +174,9 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
           // Table preview
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -270,6 +271,51 @@ class _TableEditorWidgetState extends State<TableEditorWidget> {
             label: const Text('Create PDF Table'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.table_chart,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Create a structured table',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Adjust rows, columns, and styles before exporting.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
         ],

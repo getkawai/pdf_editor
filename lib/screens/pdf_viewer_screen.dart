@@ -27,23 +27,25 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fileName = widget.filePath.split('/').last;
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.filePath.split('/').last,
-              style: const TextStyle(fontSize: 16),
+              fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             if (_totalPages > 0)
               Text(
                 'Page $_currentPage of $_totalPages',
-                style: const TextStyle(fontSize: 12),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
@@ -112,9 +114,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     if (_totalPages == 0) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -123,19 +128,19 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: _currentPage > 1 ? () => _goToPage(_currentPage - 1) : null,
-            tooltip: 'Previous Page',
-          ),
-          Expanded(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _currentPage > 1
+                    ? () => _goToPage(_currentPage - 1)
+                    : null,
+                tooltip: 'Previous Page',
+              ),
+              Expanded(
+                child: GestureDetector(
                   onTap: _showPageJumpDialog,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -143,24 +148,41 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       '$_currentPage / $_totalPages',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _currentPage < _totalPages
+                    ? () => _goToPage(_currentPage + 1)
+                    : null,
+                tooltip: 'Next Page',
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: _currentPage < _totalPages
-                ? () => _goToPage(_currentPage + 1)
-                : null,
-            tooltip: 'Next Page',
+          const SizedBox(height: 6),
+          Slider(
+            min: 1,
+            max: _totalPages.toDouble(),
+            divisions: _totalPages > 1 ? _totalPages - 1 : null,
+            value: _currentPage.clamp(1, _totalPages).toDouble(),
+            onChanged: (value) {
+              setState(() {
+                _currentPage = value.round();
+              });
+            },
+            onChangeEnd: (value) => _goToPage(value.round()),
           ),
         ],
       ),
@@ -193,7 +215,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: 'Enter page (1-$_totalPages)',
-            border: const OutlineInputBorder(),
           ),
         ),
         actions: [

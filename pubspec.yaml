@@ -30,10 +30,26 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # flutter_ai_toolkit
+  cross_file: ^0.3.4+2
+  file_selector: ^1.0.3
+  flutter_context_menu: ^0.4.0
+  flutter_markdown_plus: ^1.0.3
+  flutter_picture_taker: ^0.2.0
+  image_picker: ^1.1.2
+  mime: ^2.0.0
+  openai_dart: ^2.0.0
+  universal_platform: ^1.1.0
+  url_launcher: ^6.3.2
+  uuid: ^4.4.2
+  waveform_recorder: ^1.8.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  google_fonts: ^8.0.2
+  shared_preferences: ^2.5.4
 
   # Syncfusion PDF packages for PDF viewing and manipulation
   syncfusion_flutter_pdf: ^33.1.44

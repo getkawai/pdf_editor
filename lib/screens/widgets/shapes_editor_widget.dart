@@ -81,12 +81,13 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildHeaderCard(context),
+          const SizedBox(height: 16),
           // Title
           TextField(
             controller: _titleController,
             decoration: const InputDecoration(
               labelText: 'Document Title (Optional)',
-              border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.title),
             ),
           ),
@@ -97,7 +98,6 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
             initialValue: _selectedShapeType,
             decoration: const InputDecoration(
               labelText: 'Shape Type',
-              border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.category),
             ),
             items: const [
@@ -111,7 +111,10 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
           const SizedBox(height: 16),
 
           // Color selector
-          const Text('Color:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            'Color',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -162,9 +165,9 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
 
           // Shapes list
           if (_shapes.isNotEmpty) ...[
-            const Text(
-              'Shapes List:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              'Shapes List',
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
             ListView.builder(
@@ -201,17 +204,17 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
 
           // Preview area
           if (_shapes.isNotEmpty) ...[
-            const Text(
-              'Preview:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              'Preview',
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
             Container(
               height: 200,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
+                border: Border.all(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surface,
               ),
               child: CustomPaint(
                 size: const Size(double.infinity, 200),
@@ -228,6 +231,51 @@ class _ShapesEditorWidgetState extends State<ShapesEditorWidget> {
             label: const Text('Create PDF with Shapes'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.crop_square,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Draw shapes for layout',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Add rectangles, circles, or lines and export to PDF.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
         ],

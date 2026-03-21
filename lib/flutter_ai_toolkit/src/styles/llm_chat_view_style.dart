@@ -1,0 +1,418 @@
+// Copyright 2024 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+import 'package:flutter/widgets.dart';
+
+import '../strings/strings.dart';
+import 'action_button_style.dart';
+import 'action_button_type.dart';
+import 'chat_input_style.dart';
+import 'file_attachment_style.dart';
+import 'llm_message_style.dart';
+import 'suggestion_style.dart';
+import 'toolkit_colors.dart';
+import 'user_message_style.dart';
+import 'waveform_recorder_style.dart';
+
+/// Style for the entire chat widget.
+@immutable
+class LlmChatViewStyle {
+  /// Creates a style object for the chat widget.
+  const LlmChatViewStyle({
+    this.backgroundColor,
+    this.menuColor,
+    this.progressIndicatorColor,
+    this.userMessageStyle,
+    this.llmMessageStyle,
+    this.chatInputStyle,
+    this.addButtonStyle,
+    this.attachFileButtonStyle,
+    this.cameraButtonStyle,
+    this.stopButtonStyle,
+    this.closeButtonStyle,
+    this.cancelButtonStyle,
+    this.copyButtonStyle,
+    this.editButtonStyle,
+    this.galleryButtonStyle,
+    this.recordButtonStyle,
+    this.submitButtonStyle,
+    this.disabledButtonStyle,
+    this.closeMenuButtonStyle,
+    this.actionButtonBarDecoration,
+    this.fileAttachmentStyle,
+    this.suggestionStyle,
+    this.voiceNoteRecorderStyle,
+    this.urlButtonStyle,
+    this.padding,
+    this.margin,
+    this.messageSpacing,
+    this.strings,
+  });
+
+  /// Resolves the provided [style] with the [defaultStyle].
+  ///
+  /// This method returns a new [LlmChatViewStyle] instance where each property
+  /// is taken from the provided [style] if it is not null, otherwise from the
+  /// [defaultStyle].
+  ///
+  /// - [style]: The style to resolve. If null, the [defaultStyle] will be used.
+  /// - [defaultStyle]: The default style to use for any properties not provided
+  ///   by the [style].
+  factory LlmChatViewStyle.resolve(
+    LlmChatViewStyle? style, {
+    LlmChatViewStyle? defaultStyle,
+  }) {
+    defaultStyle ??= LlmChatViewStyle.defaultStyle();
+    return LlmChatViewStyle(
+      backgroundColor: style?.backgroundColor ?? defaultStyle.backgroundColor,
+      menuColor: style?.menuColor ?? defaultStyle.menuColor,
+      progressIndicatorColor:
+          style?.progressIndicatorColor ?? defaultStyle.progressIndicatorColor,
+      userMessageStyle: UserMessageStyle.resolve(
+        style?.userMessageStyle,
+        defaultStyle: defaultStyle.userMessageStyle,
+      ),
+      llmMessageStyle: LlmMessageStyle.resolve(
+        style?.llmMessageStyle,
+        defaultStyle: defaultStyle.llmMessageStyle,
+      ),
+      chatInputStyle: ChatInputStyle.resolve(
+        style?.chatInputStyle,
+        defaultStyle: defaultStyle.chatInputStyle,
+      ),
+      addButtonStyle: ActionButtonStyle.resolve(
+        style?.addButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.add,
+          strings: style?.strings,
+        ),
+      ),
+      attachFileButtonStyle: ActionButtonStyle.resolve(
+        style?.attachFileButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.attachFile,
+          strings: style?.strings,
+        ),
+      ),
+      cameraButtonStyle: ActionButtonStyle.resolve(
+        style?.cameraButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.camera,
+          strings: style?.strings,
+        ),
+      ),
+      stopButtonStyle: ActionButtonStyle.resolve(
+        style?.stopButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.stop,
+          strings: style?.strings,
+        ),
+      ),
+      closeButtonStyle: ActionButtonStyle.resolve(
+        style?.closeButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.close,
+          strings: style?.strings,
+        ),
+      ),
+      cancelButtonStyle: ActionButtonStyle.resolve(
+        style?.cancelButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.cancel,
+          strings: style?.strings,
+        ),
+      ),
+      copyButtonStyle: ActionButtonStyle.resolve(
+        style?.copyButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.copy,
+          strings: style?.strings,
+        ),
+      ),
+      editButtonStyle: ActionButtonStyle.resolve(
+        style?.editButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.edit,
+          strings: style?.strings,
+        ),
+      ),
+      galleryButtonStyle: ActionButtonStyle.resolve(
+        style?.galleryButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.gallery,
+          strings: style?.strings,
+        ),
+      ),
+      recordButtonStyle: ActionButtonStyle.resolve(
+        style?.recordButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.record,
+          strings: style?.strings,
+        ),
+      ),
+      submitButtonStyle: ActionButtonStyle.resolve(
+        style?.submitButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.submit,
+          strings: style?.strings,
+        ),
+      ),
+      disabledButtonStyle: ActionButtonStyle.resolve(
+        style?.disabledButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.disabled,
+          strings: style?.strings,
+        ),
+      ),
+      closeMenuButtonStyle: ActionButtonStyle.resolve(
+        style?.closeMenuButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.closeMenu,
+          strings: style?.strings,
+        ),
+      ),
+      actionButtonBarDecoration:
+          style?.actionButtonBarDecoration ??
+          defaultStyle.actionButtonBarDecoration,
+      suggestionStyle: SuggestionStyle.resolve(
+        style?.suggestionStyle,
+        defaultStyle: defaultStyle.suggestionStyle,
+      ),
+      voiceNoteRecorderStyle: VoiceNoteRecorderStyle.resolve(
+        style?.voiceNoteRecorderStyle,
+        defaultStyle: defaultStyle.voiceNoteRecorderStyle,
+      ),
+      urlButtonStyle: ActionButtonStyle.resolve(
+        style?.urlButtonStyle,
+        defaultStyle: ActionButtonStyle.defaultStyle(
+          ActionButtonType.url,
+          strings: style?.strings,
+        ),
+      ),
+      padding: style?.padding ?? defaultStyle.padding,
+      margin: style?.margin ?? defaultStyle.margin,
+      messageSpacing: style?.messageSpacing ?? defaultStyle.messageSpacing,
+    );
+  }
+
+  /// Provides default style if none is specified.
+  factory LlmChatViewStyle.defaultStyle() => LlmChatViewStyle._lightStyle();
+
+  /// Provides a default light style.
+  factory LlmChatViewStyle._lightStyle() => LlmChatViewStyle(
+    backgroundColor: ToolkitColors.containerBackground,
+    menuColor: ToolkitColors.containerBackground,
+    progressIndicatorColor: ToolkitColors.black,
+    userMessageStyle: UserMessageStyle.defaultStyle(),
+    llmMessageStyle: LlmMessageStyle.defaultStyle(),
+    chatInputStyle: ChatInputStyle.defaultStyle(),
+    addButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.add,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    stopButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.stop,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    recordButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.record,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    submitButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.submit,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    closeMenuButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.closeMenu,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    attachFileButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.attachFile,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    galleryButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.gallery,
+    ),
+    cameraButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.camera,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    closeButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.close,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    cancelButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.cancel,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    copyButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.copy,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    editButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.edit,
+      strings: LlmChatViewStrings.defaults,
+    ),
+    actionButtonBarDecoration: BoxDecoration(
+      color: ToolkitColors.darkButtonBackground,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    fileAttachmentStyle: FileAttachmentStyle.defaultStyle(),
+    suggestionStyle: SuggestionStyle.defaultStyle(),
+    voiceNoteRecorderStyle: VoiceNoteRecorderStyle.defaultStyle(),
+    urlButtonStyle: ActionButtonStyle.defaultStyle(
+      ActionButtonType.url,
+      strings: LlmChatViewStrings.defaults,
+    ),
+  );
+
+  /// Creates a copy of this style with the given fields replaced by the new
+  LlmChatViewStyle copyWith({
+    Color? backgroundColor,
+    Color? menuColor,
+    Color? progressIndicatorColor,
+    UserMessageStyle? userMessageStyle,
+    LlmMessageStyle? llmMessageStyle,
+    ChatInputStyle? chatInputStyle,
+    ActionButtonStyle? addButtonStyle,
+    ActionButtonStyle? attachFileButtonStyle,
+    ActionButtonStyle? cameraButtonStyle,
+    ActionButtonStyle? stopButtonStyle,
+    ActionButtonStyle? closeButtonStyle,
+    ActionButtonStyle? cancelButtonStyle,
+    ActionButtonStyle? copyButtonStyle,
+    ActionButtonStyle? editButtonStyle,
+    ActionButtonStyle? galleryButtonStyle,
+    ActionButtonStyle? recordButtonStyle,
+    ActionButtonStyle? submitButtonStyle,
+    ActionButtonStyle? disabledButtonStyle,
+    ActionButtonStyle? closeMenuButtonStyle,
+    Decoration? actionButtonBarDecoration,
+    FileAttachmentStyle? fileAttachmentStyle,
+    SuggestionStyle? suggestionStyle,
+    VoiceNoteRecorderStyle? voiceNoteRecorderStyle,
+    ActionButtonStyle? urlButtonStyle,
+    EdgeInsetsGeometry? padding,
+    EdgeInsetsGeometry? margin,
+    double? messageSpacing,
+  }) {
+    return LlmChatViewStyle(
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      menuColor: menuColor ?? this.menuColor,
+      progressIndicatorColor:
+          progressIndicatorColor ?? this.progressIndicatorColor,
+      userMessageStyle: userMessageStyle ?? this.userMessageStyle,
+      llmMessageStyle: llmMessageStyle ?? this.llmMessageStyle,
+      chatInputStyle: chatInputStyle ?? this.chatInputStyle,
+      addButtonStyle: addButtonStyle ?? this.addButtonStyle,
+      attachFileButtonStyle:
+          attachFileButtonStyle ?? this.attachFileButtonStyle,
+      cameraButtonStyle: cameraButtonStyle ?? this.cameraButtonStyle,
+      stopButtonStyle: stopButtonStyle ?? this.stopButtonStyle,
+      closeButtonStyle: closeButtonStyle ?? this.closeButtonStyle,
+      cancelButtonStyle: cancelButtonStyle ?? this.cancelButtonStyle,
+      copyButtonStyle: copyButtonStyle ?? this.copyButtonStyle,
+      editButtonStyle: editButtonStyle ?? this.editButtonStyle,
+      galleryButtonStyle: galleryButtonStyle ?? this.galleryButtonStyle,
+      recordButtonStyle: recordButtonStyle ?? this.recordButtonStyle,
+      submitButtonStyle: submitButtonStyle ?? this.submitButtonStyle,
+      disabledButtonStyle: disabledButtonStyle ?? this.disabledButtonStyle,
+      closeMenuButtonStyle: closeMenuButtonStyle ?? this.closeMenuButtonStyle,
+      actionButtonBarDecoration:
+          actionButtonBarDecoration ?? this.actionButtonBarDecoration,
+      fileAttachmentStyle: fileAttachmentStyle ?? this.fileAttachmentStyle,
+      suggestionStyle: suggestionStyle ?? this.suggestionStyle,
+      voiceNoteRecorderStyle:
+          voiceNoteRecorderStyle ?? this.voiceNoteRecorderStyle,
+      urlButtonStyle: urlButtonStyle ?? this.urlButtonStyle,
+      padding: padding ?? this.padding,
+      margin: margin ?? this.margin,
+      messageSpacing: messageSpacing ?? this.messageSpacing,
+    );
+  }
+
+  /// Background color of the entire chat widget.
+  final Color? backgroundColor;
+
+  /// The color of the menu.
+  final Color? menuColor;
+
+  /// The color of the progress indicator.
+  final Color? progressIndicatorColor;
+
+  /// Style for user messages.
+  final UserMessageStyle? userMessageStyle;
+
+  /// Style for LLM messages.
+  final LlmMessageStyle? llmMessageStyle;
+
+  /// Style for the input text box.
+  final ChatInputStyle? chatInputStyle;
+
+  /// Style for the add button.
+  final ActionButtonStyle? addButtonStyle;
+
+  /// Style for the attach file button.
+  final ActionButtonStyle? attachFileButtonStyle;
+
+  /// Style for the camera button.
+  final ActionButtonStyle? cameraButtonStyle;
+
+  /// Style for the stop button.
+  final ActionButtonStyle? stopButtonStyle;
+
+  /// Style for the close button.
+  final ActionButtonStyle? closeButtonStyle;
+
+  /// Style for the cancel button.
+  final ActionButtonStyle? cancelButtonStyle;
+
+  /// Style for the copy button.
+  final ActionButtonStyle? copyButtonStyle;
+
+  /// Style for the edit button.
+  final ActionButtonStyle? editButtonStyle;
+
+  /// Style for the gallery button.
+  final ActionButtonStyle? galleryButtonStyle;
+
+  /// Style for the record button.
+  final ActionButtonStyle? recordButtonStyle;
+
+  /// Style for the submit button.
+  final ActionButtonStyle? submitButtonStyle;
+
+  /// Style for the disabled button.
+  final ActionButtonStyle? disabledButtonStyle;
+
+  /// Style for the close menu button.
+  final ActionButtonStyle? closeMenuButtonStyle;
+
+  /// Decoration for the action button bar.
+  final Decoration? actionButtonBarDecoration;
+
+  /// Style for file attachments.
+  final FileAttachmentStyle? fileAttachmentStyle;
+
+  /// Style for suggestions.
+  final SuggestionStyle? suggestionStyle;
+
+  /// Style for the waveform recorder.
+  final VoiceNoteRecorderStyle? voiceNoteRecorderStyle;
+
+  /// Style for the URL button.
+  final ActionButtonStyle? urlButtonStyle;
+
+  /// Default padding around the chat view.
+  final EdgeInsetsGeometry? padding;
+
+  /// Margin around the entire chat view.
+  final EdgeInsetsGeometry? margin;
+
+  /// Spacing between messages.
+  final double? messageSpacing;
+
+  /// Custom strings for the chat view.
+  final LlmChatViewStrings? strings;
+}
