@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'pdf_viewer_screen.dart';
 import 'pdf_editor_screen.dart';
 import '../services/analytics_service.dart';
@@ -19,16 +21,43 @@ class _HomeScreenState extends State<HomeScreen> {
   final AnalyticsService _analytics = AnalyticsService();
   final int _toolsCount = ToolsManager().getAllTools().length;
   bool _animateIn = false;
+  static const String _recentKey = 'recent_pdf_path';
 
   @override
   void initState() {
     super.initState();
+    _loadRecentFile();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
         _animateIn = true;
       });
     });
+  }
+
+  Future<void> _loadRecentFile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final path = prefs.getString(_recentKey);
+      if (!mounted) return;
+      setState(() {
+        _recentFilePath = path;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveRecentFile(String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_recentKey, path);
+    } catch (_) {}
+  }
+
+  Future<void> _clearRecentFile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_recentKey);
+    } catch (_) {}
   }
 
   Future<void> _pickAndOpenPDF() async {
@@ -39,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (result != null && result.files.single.path != null) {
+        await _saveRecentFile(result.files.single.path!);
         setState(() {
           _recentFilePath = result.files.single.path!;
         });
@@ -83,6 +113,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openRecentPdf() async {
     if (_recentFilePath == null) return;
+    final file = File(_recentFilePath!);
+    if (!await file.exists()) {
+      if (!mounted) return;
+      await _clearRecentFile();
+      setState(() {
+        _recentFilePath = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recent file not found.')),
+      );
+      return;
+    }
     _analytics.logOpenPdf(source: 'recent');
     if (!mounted) return;
     Navigator.push(
