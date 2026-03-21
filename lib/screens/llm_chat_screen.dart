@@ -16,7 +16,7 @@ class LlmChatScreen extends StatefulWidget {
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
-  static const String _targetModelSlug = 'LiquidAI/LFM2.5-1.2B-Thinking';
+  static const String _targetModelSlug = 'lfm2-1.2b-tool';
 
   final LlmService _llmService = LlmService();
   final AnalyticsService _analytics = AnalyticsService();
@@ -172,7 +172,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             child: _isModelLoaded && _provider != null
                 ? LlmChatView(
                     provider: _provider!,
-                    enableAttachments: false,
+                    enableAttachments: true,
                     enableVoiceNotes: false,
                     welcomeMessage:
                         'Hello! I\'m your AI assistant. I can help you with PDF-related tasks. How can I assist you today?',
