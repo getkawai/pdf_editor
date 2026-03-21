@@ -3,12 +3,16 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:io';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart'
     show Icons, MenuAnchor, MenuItemButton, MenuStyle;
 import 'package:flutter/widgets.dart';
+import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../dialogs/url_input_dialog.dart';
 import '../../strings/llm_chat_view_strings.dart';
@@ -41,11 +45,13 @@ class AttachmentActionBar extends StatefulWidget {
 
 class _AttachmentActionBarState extends State<AttachmentActionBar> {
   late final bool _canCamera;
+  late final bool _canScan;
 
   @override
   void initState() {
     super.initState();
     _canCamera = canTakePhoto();
+    _canScan = Platform.isAndroid;
   }
 
   @override
@@ -77,6 +83,18 @@ class _AttachmentActionBarState extends State<AttachmentActionBar> {
             style: chatStyle.galleryButtonStyle!.textStyle,
           ),
         ),
+        if (_canScan)
+          MenuItemButton(
+            leadingIcon: Icon(
+              Icons.document_scanner,
+              color: chatStyle.attachFileButtonStyle!.iconColor,
+            ),
+            onPressed: () => _onScanDocument(chatStrings),
+            child: Text(
+              chatStrings.scanDocument,
+              style: chatStyle.attachFileButtonStyle!.textStyle,
+            ),
+          ),
         MenuItemButton(
           leadingIcon: Icon(
             chatStyle.attachFileButtonStyle!.icon!,
@@ -206,6 +224,51 @@ class _AttachmentActionBarState extends State<AttachmentActionBar> {
         // ignore: use_build_context_synchronously
         AdaptiveSnackBar.show(context, message);
       }
+    }
+  }
+
+  Future<void> _onScanDocument(LlmChatViewStrings chatStrings) async {
+    if (!_canScan) {
+      AdaptiveSnackBar.show(
+        context,
+        chatStrings.unableToScanDocument,
+      );
+      return;
+    }
+
+    final cameraStatus = await Permission.camera.request();
+    if (!cameraStatus.isGranted) {
+      AdaptiveSnackBar.show(
+        context,
+        '${chatStrings.unableToScanDocument}Camera permission denied.',
+      );
+      return;
+    }
+
+    final options = DocumentScannerOptions(
+      documentFormats: {DocumentFormat.pdf},
+      pageLimit: 20,
+      mode: ScannerMode.full,
+      isGalleryImport: true,
+    );
+    final scanner = DocumentScanner(options: options);
+
+    try {
+      final result = await scanner.scanDocument();
+      final pdf = result.pdf;
+      if (pdf == null) return;
+      final uri = Uri.parse(pdf.uri);
+      final path = uri.scheme == 'file' ? uri.toFilePath() : pdf.uri;
+      if (path.isEmpty) return;
+      final attachment = await FileAttachment.fromFile(XFile(path));
+      widget.onAttachments([attachment]);
+    } on Exception catch (ex) {
+      final message = '${chatStrings.unableToScanDocument}${ex.toString()}';
+      if (context.mounted) {
+        AdaptiveSnackBar.show(context, message);
+      }
+    } finally {
+      await scanner.close();
     }
   }
 }
