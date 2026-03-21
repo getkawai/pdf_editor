@@ -134,6 +134,8 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildHeaderCard(context),
+          const SizedBox(height: 16),
           // PDF Selector
           Card(
             child: Padding(
@@ -141,9 +143,9 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Select PDF to Annotate',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    'Select PDF',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 12),
                   if (_pdfPath != null) ...[
@@ -203,7 +205,6 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
             initialValue: _selectedAnnotationType,
             decoration: const InputDecoration(
               labelText: 'Annotation Type',
-              border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.category),
             ),
             items: const [
@@ -338,6 +339,51 @@ class _AnnotationsEditorWidgetState extends State<AnnotationsEditorWidget> {
             label: const Text('Apply Annotations to PDF'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.edit_note,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Annotate with precision',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pick a PDF and add highlights or notes.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
         ],

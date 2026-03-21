@@ -623,7 +623,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(
             title: const Text('Annotate PDF'),
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
           body: AnnotationsEditorWidget(
             tool: tool,
@@ -647,7 +646,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(
             title: const Text('Create Bullets & Lists'),
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
           body: ListsEditorWidget(
             tool: tool,
@@ -671,7 +669,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(
             title: const Text('Create Table PDF'),
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
           body: TableEditorWidget(
             tool: tool,
@@ -771,7 +768,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(
             title: const Text('Draw Shapes'),
-            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           ),
           body: ShapesEditorWidget(
             tool: tool,

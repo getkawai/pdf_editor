@@ -12,31 +12,29 @@ import 'package:pdf_editor/main.dart';
 
 void main() {
   testWidgets('PDF Editor initial UI test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     await tester.pumpWidget(const PdfEditorApp());
+    await tester.pumpAndSettle();
 
-    // Verify that the app title is shown in the home screen.
     expect(find.text('PDF Editor'), findsAtLeastNWidgets(1));
 
-    // Verify that the subtitle is present.
-    expect(find.text('View, create, and edit PDF documents'), findsOneWidget);
+    expect(
+      find.text('Open, edit, or scan files with a fast local toolkit.'),
+      findsOneWidget,
+    );
 
-    // Verify that the info action button is present in the AppBar.
     expect(find.byIcon(Icons.info_outline), findsOneWidget);
 
-    // Verify that the main action buttons are present.
     expect(find.text('Open PDF'), findsOneWidget);
     expect(find.text('Create New'), findsOneWidget);
-    expect(find.text('Scan Doc'), findsOneWidget);
-    expect(find.text('PDF Tools'), findsOneWidget);
-    expect(find.text('AI Chat'), findsAtLeastNWidgets(1));
+    expect(find.text('Scan Doc'), findsNothing);
+    expect(find.text('PDF Tools'), findsNothing);
+    expect(find.text('AI Chat'), findsNothing);
 
-    // Verify that the icons are present.
     expect(find.byIcon(Icons.picture_as_pdf), findsOneWidget);
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
-    expect(find.byIcon(Icons.document_scanner), findsOneWidget);
-    expect(find.byIcon(Icons.build), findsAtLeastNWidgets(1));
-    expect(find.byIcon(Icons.smart_toy), findsOneWidget);
+    expect(find.byIcon(Icons.document_scanner), findsNothing);
+    expect(find.byIcon(Icons.build), findsNothing);
+    expect(find.byIcon(Icons.smart_toy), findsNothing);
   });
 }
