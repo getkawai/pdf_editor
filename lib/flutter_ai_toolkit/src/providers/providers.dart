@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 export 'implementations/echo_provider.dart';
+export 'implementations/local_llm_provider.dart';
 export 'implementations/openai_provider.dart';
 export 'interface/attachments.dart';
 export 'interface/chat_message.dart';

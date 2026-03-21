@@ -7,7 +7,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'pdf_viewer_screen.dart';
 
 class DocumentScannerScreen extends StatefulWidget {
-  const DocumentScannerScreen({super.key});
+  const DocumentScannerScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<DocumentScannerScreen> createState() => _DocumentScannerScreenState();
@@ -84,6 +86,7 @@ class _DocumentScannerScreenState extends State<DocumentScannerScreen> {
     final pdfPath = _pdfFilePath();
 
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('Document Scanner'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,

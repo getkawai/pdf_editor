@@ -1,12 +1,15 @@
 import 'package:cactus/cactus.dart';
 import 'package:flutter/material.dart';
+import '../flutter_ai_toolkit/src/providers/implementations/local_llm_provider.dart';
+import '../flutter_ai_toolkit/src/views/llm_chat_view/llm_chat_view.dart';
 import '../llm/llm.dart';
 import '../services/analytics_service.dart';
-import '../tools/tools_manager.dart';
 
-/// Screen for interacting with LLM chat
+/// Screen for interacting with LLM chat using flutter_ai_toolkit's LlmChatView
 class LlmChatScreen extends StatefulWidget {
-  const LlmChatScreen({super.key});
+  const LlmChatScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<LlmChatScreen> createState() => _LlmChatScreenState();
@@ -14,33 +17,7 @@ class LlmChatScreen extends StatefulWidget {
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
   final LlmService _llmService = LlmService();
-  final TextEditingController _promptController = TextEditingController();
   final AnalyticsService _analytics = AnalyticsService();
-
-  final List<Map<String, String>> _messages = [];
-  final List<LlmFunctionTool> _defaultTools = const [
-    LlmFunctionTool(
-      name: 'get_today_date',
-      description:
-          'Gets today\'s date. Use this when the user needs the current date or calendar info.',
-      parameters: {},
-    ),
-  ];
-
-  List<LlmFunctionTool> _getAllTools() {
-    final pdfTools = ToolsManager()
-        .getAllTools()
-        .map(
-          (t) => LlmFunctionTool(
-            name: t.id.replaceAll('-', '_'),
-            description: t.description,
-            parameters: t.parametersSchema,
-          ),
-        )
-        .toList();
-
-    return [..._defaultTools, ...pdfTools];
-  }
 
   bool _isModelLoaded = false;
   bool _isLoading = false;
@@ -49,7 +26,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   String? _selectedModelSlug;
   String? _loadedModelSlug;
   bool _enableTools = true;
-  DateTime? _requestStartTime;
+  LocalLlmProvider? _provider;
   bool _showModelSheet = false;
 
   @override
@@ -99,16 +76,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Future<void> _loadModel() async {
     setState(() => _isLoading = true);
-    final selected = _availableModels
-        .where((m) => m.slug == _selectedModelSlug)
-        .toList();
+    final selected = _availableModels.where((m) => m.slug == _selectedModelSlug).toList();
     final model = selected.isNotEmpty ? selected.first : null;
     if (model == null) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please select a model')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a model')),
+        );
       }
       return;
     }
@@ -130,6 +105,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         if (success) {
           _loadedModelSlug = model.slug;
           model.isDownloaded = true;
+          // Create provider with loaded model
+          _provider = LocalLlmProvider(
+            llmService: _llmService,
+            systemPrompt:
+                'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools.',
+          );
         }
       });
 
@@ -153,118 +134,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
   }
 
-  Future<void> _sendMessage() async {
-    if (_promptController.text.isEmpty) return;
-    if (!_isModelLoaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please load a model first')),
-      );
-      return;
-    }
-
-    final userMessage = _promptController.text;
-    setState(() {
-      _messages.add({'role': 'user', 'content': userMessage});
-      _isLoading = true;
-    });
-
-    _promptController.clear();
-
-    // Log user message
-    _analytics.logAiMessage(
-      messageType: 'user',
-      messageLength: userMessage.length,
-      model: _selectedModelSlug,
-    );
-
-    try {
-      _requestStartTime = DateTime.now();
-
-      final request = LlmGenerationRequest(
-        prompt: userMessage,
-        systemPrompt:
-            'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools. Do NOT refuse to answer simple conversational questions.',
-        temperature: 0.7,
-        maxTokens: 512,
-        enableFunctionCalling: _llmService.supportsToolCalling && _enableTools,
-        tools: (_llmService.supportsToolCalling && _enableTools)
-            ? _getAllTools()
-            : const [],
-        onExecuteTool: (name, args) async {
-          var tool = ToolsManager().getTool(name);
-          tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
-          if (tool != null) {
-            final result = await tool.execute(args);
-            return {
-              'success': result.success.toString(),
-              if (result.errorMessage != null) 'error': result.errorMessage!,
-              if (result.metadata != null)
-                'metadata': result.metadata.toString(),
-            };
-          }
-          return null;
-        },
-      );
-
-      final response = await _llmService.generate(request);
-
-      // Log AI response
-      final latency = _requestStartTime != null
-          ? DateTime.now().difference(_requestStartTime!)
-          : Duration.zero;
-
-      _analytics.logAiResponse(
-        responseLength: response.content.length,
-        latency: latency,
-        model: _selectedModelSlug,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          if (response.isComplete && response.errorMessage == null) {
-            _messages.add({'role': 'assistant', 'content': response.content});
-          } else {
-            _messages.add({
-              'role': 'assistant',
-              'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
-            });
-            // Log error
-            _analytics.logError(
-              errorType: 'llm_generation_error',
-              errorMessage: response.errorMessage ?? 'Unknown error',
-              screen: 'llm_chat',
-              exception: response.errorMessage ?? 'Unknown error',
-              metadata: {
-                'model': _selectedModelSlug ?? 'unknown',
-                'is_complete': response.isComplete,
-              },
-            );
-          }
-        });
-      }
-    } catch (e, st) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        // Log error
-        _analytics.logError(
-          errorType: 'llm_exception',
-          errorMessage: e.toString(),
-          screen: 'llm_chat',
-          exception: e,
-          stackTrace: st,
-          metadata: {'model': _selectedModelSlug ?? 'unknown'},
-        );
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _promptController.dispose();
     _llmService.dispose();
     super.dispose();
   }
@@ -272,6 +143,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('AI Chat'),
         actions: [
@@ -283,6 +155,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             tooltip: _isModelLoaded ? 'Model loaded' : 'No model loaded',
             onPressed: () => _showModelInfo(),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Model settings',
+            onPressed: _openModelSheet,
+          ),
         ],
       ),
       body: Column(
@@ -290,44 +167,56 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           _buildModelStatusBar(),
           const Divider(height: 1),
           Expanded(
-            child: _messages.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No messages yet\nLoad a model to start chatting.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
+            child: _isModelLoaded && _provider != null
+                ? LlmChatView(
+                    provider: _provider!,
+                    enableAttachments: false,
+                    enableVoiceNotes: false,
+                    welcomeMessage:
+                        'Hello! I\'m your AI assistant. I can help you with PDF-related tasks. How can I assist you today?',
+                    suggestions: const [
+                      'What can you help me with?',
+                      'How do I merge PDFs?',
+                      'Can you summarize a PDF?',
+                    ],
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isUser = message['role'] == 'user';
-                      return _buildMessageBubble(
-                        message['content'] ?? '',
-                        isUser: isUser,
-                      );
-                    },
-                  ),
+                : _buildEmptyState(),
           ),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: LinearProgressIndicator(),
-            ),
-          _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.smart_toy,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Load a model to start chatting',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select a model from the settings to begin',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade500,
+                ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _openModelSheet,
+            icon: const Icon(Icons.download),
+            label: const Text('Load Model'),
+          ),
         ],
       ),
     );
@@ -367,7 +256,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
             TextButton(
               onPressed: _openModelSheet,
-              child: const Text('Model Settings'),
+              child: const Text('Settings'),
             ),
           ],
         ),
@@ -393,9 +282,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         onModelSelected: (slug) {
           setState(() {
             _selectedModelSlug = slug;
-            final selected = _availableModels
-                .where((m) => m.slug == slug)
-                .toList();
+            final selected = _availableModels.where((m) => m.slug == slug).toList();
             final model = selected.isNotEmpty ? selected.first : null;
             if (model != null && !model.supportsToolCalling) {
               _enableTools = false;
@@ -410,49 +297,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     ).whenComplete(() {
       _showModelSheet = false;
     });
-  }
-
-  Widget _buildMessageBubble(String content, {required bool isUser}) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(content),
-      ),
-    );
-  }
-
-  Widget _buildInputArea() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _promptController,
-              decoration: const InputDecoration(
-                hintText: 'Type a message...',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _sendMessage(),
-              enabled: _isModelLoaded && !_isLoading,
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: (_isModelLoaded && !_isLoading) ? _sendMessage : null,
-            icon: const Icon(Icons.send),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showModelInfo() {
@@ -562,12 +406,11 @@ class _ModelSelectorSheetState extends State<ModelSelectorSheet> {
             const Text('No models available. Try again later.')
           else
             DropdownButtonFormField<String>(
-              value: _localSelectedSlug,
+              initialValue: _localSelectedSlug,
               decoration: const InputDecoration(labelText: 'Select model'),
               items: widget.availableModels.map((model) {
-                final supportsTools = model.supportsToolCalling
-                    ? ' • tools'
-                    : '';
+                final supportsTools =
+                    model.supportsToolCalling ? ' • tools' : '';
                 final downloaded = model.isDownloaded ? ' • downloaded' : '';
                 final suffix = '$supportsTools$downloaded';
                 return DropdownMenuItem<String>(
@@ -608,9 +451,10 @@ class _ModelSelectorSheetState extends State<ModelSelectorSheet> {
             ),
           if (_localSelectedSlug != null) const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: (widget.isLoading || widget.isLoadingModels)
-                ? null
-                : widget.onLoadModel,
+            onPressed:
+                (widget.isLoading || widget.isLoadingModels)
+                    ? null
+                    : widget.onLoadModel,
             child: const Text('Download & Load'),
           ),
           if (widget.loadedModelSlug != null && widget.isModelLoaded)

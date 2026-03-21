@@ -12,7 +12,9 @@ import 'widgets/annotations_editor_widget.dart';
 import 'widgets/lists_editor_widget.dart';
 
 class ToolsScreen extends StatefulWidget {
-  const ToolsScreen({super.key});
+  const ToolsScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<ToolsScreen> createState() => _ToolsScreenState();
@@ -53,6 +55,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final groupedTools = _groupTools(filteredTools);
 
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('PDF Tools'),
       ),

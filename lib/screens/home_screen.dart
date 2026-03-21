@@ -8,9 +8,10 @@ import '../services/analytics_service.dart';
 import '../tools/tools_manager.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.onNavigateToTab});
+  const HomeScreen({super.key, this.onNavigateToTab, this.drawer});
 
   final ValueChanged<int>? onNavigateToTab;
+  final Widget? drawer;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -143,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final horizontalPadding = isTablet ? 32.0 : 20.0;
 
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('PDF Editor'),
         actions: [
@@ -236,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.build,
                                   title: 'PDF Tools',
                                   subtitle: 'Merge, compress, annotate',
-                                  onTap: () => widget.onNavigateToTab!(1),
+                                  onTap: () => widget.onNavigateToTab!(2),
                                 ),
                               if (canNavigateTabs)
                                 _buildQuickAction(
@@ -245,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.document_scanner,
                                   title: 'Scan Doc',
                                   subtitle: 'Capture with camera',
-                                  onTap: () => widget.onNavigateToTab!(2),
+                                  onTap: () => widget.onNavigateToTab!(3),
                                 ),
                               if (canNavigateTabs)
                                 _buildQuickAction(
@@ -254,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.smart_toy,
                                   title: 'AI Chat',
                                   subtitle: 'Ask about your PDF',
-                                  onTap: () => widget.onNavigateToTab!(3),
+                                  onTap: () => widget.onNavigateToTab!(0),
                                 ),
                             ],
                           );
