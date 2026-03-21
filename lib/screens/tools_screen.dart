@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../tools/tools.dart';
 import '../services/analytics_service.dart';
+import 'pdf_viewer_screen.dart';
 import 'widgets/table_editor_widget.dart';
 import 'widgets/shapes_editor_widget.dart';
 import 'widgets/annotations_editor_widget.dart';
@@ -1716,10 +1718,25 @@ class _ToolsScreenState extends State<ToolsScreen> {
         Navigator.pop(context); // Close loading dialog
 
         if (result.success) {
+          final previewPath = await _materializeResultPath(result);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${tool.name} completed successfully!'),
               backgroundColor: Colors.green,
+              action: previewPath == null
+                  ? null
+                  : SnackBarAction(
+                      label: 'Preview',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PdfViewerScreen(filePath: previewPath),
+                          ),
+                        );
+                      },
+                    ),
             ),
           );
           
@@ -1761,6 +1778,26 @@ class _ToolsScreenState extends State<ToolsScreen> {
           screen: 'tools',
         );
       }
+    }
+  }
+
+  Future<String?> _materializeResultPath(PdfToolResult result) async {
+    try {
+      final outputPath = result.outputPath;
+      if (outputPath != null && outputPath.isNotEmpty) {
+        return outputPath;
+      }
+      final pdfData = result.pdfData;
+      if (pdfData == null) return null;
+
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/tool_result_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+      await file.writeAsBytes(pdfData, flush: true);
+      return file.path;
+    } catch (_) {
+      return null;
     }
   }
 
