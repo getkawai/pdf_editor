@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/main_navigation_screen.dart';
+import 'screens/app_root.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -18,7 +18,7 @@ class PdfEditorApp extends StatelessWidget {
       navigatorObservers: _buildNavigatorObservers(),
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      home: const MainNavigationScreen(),
+      home: const AppRoot(),
     );
   }
 
