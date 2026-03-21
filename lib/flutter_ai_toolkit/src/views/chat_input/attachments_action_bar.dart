@@ -5,7 +5,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart'
     show Icons, MenuAnchor, MenuItemButton, MenuStyle;
@@ -133,11 +132,10 @@ class _AttachmentActionBarState extends State<AttachmentActionBar> {
           menuItems.length,
         ),
         consumeOutsideTap: true,
-        builder:
-            (_, controller, _) => ActionButton(
-              onPressed: controller.isOpen ? controller.close : controller.open,
-              style: chatStyle.addButtonStyle!,
-            ),
+        builder: (_, controller, _) => ActionButton(
+          onPressed: controller.isOpen ? controller.close : controller.open,
+          style: chatStyle.addButtonStyle!,
+        ),
         menuChildren: menuItems,
       );
     },
@@ -229,15 +227,13 @@ class _AttachmentActionBarState extends State<AttachmentActionBar> {
 
   Future<void> _onScanDocument(LlmChatViewStrings chatStrings) async {
     if (!_canScan) {
-      AdaptiveSnackBar.show(
-        context,
-        chatStrings.unableToScanDocument,
-      );
+      AdaptiveSnackBar.show(context, chatStrings.unableToScanDocument);
       return;
     }
 
     final cameraStatus = await Permission.camera.request();
     if (!cameraStatus.isGranted) {
+      if (!mounted) return;
       AdaptiveSnackBar.show(
         context,
         '${chatStrings.unableToScanDocument}Camera permission denied.',
@@ -264,9 +260,8 @@ class _AttachmentActionBarState extends State<AttachmentActionBar> {
       widget.onAttachments([attachment]);
     } on Exception catch (ex) {
       final message = '${chatStrings.unableToScanDocument}${ex.toString()}';
-      if (context.mounted) {
-        AdaptiveSnackBar.show(context, message);
-      }
+      if (!mounted) return;
+      AdaptiveSnackBar.show(context, message);
     } finally {
       await scanner.close();
     }

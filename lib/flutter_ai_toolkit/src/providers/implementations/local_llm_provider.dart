@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../providers/interface/llm_provider.dart';
 import '../../providers/interface/attachments.dart';
 import '../../providers/interface/chat_message.dart';
@@ -9,15 +10,14 @@ import '../../../../services/analytics_service.dart';
 
 /// An implementation of [LlmProvider] that uses [LlmService] for local LLM inference.
 class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
-  LocalLlmProvider({
-    required this.llmService,
-    String? systemPrompt,
-  }) : _systemPrompt = systemPrompt;
+  LocalLlmProvider({required this.llmService, String? systemPrompt})
+    : _systemPrompt = systemPrompt;
 
   final LlmService llmService;
   final String? _systemPrompt;
   final List<ChatMessage> _history = [];
   bool _isProcessing = false;
+  Iterable<Attachment> _lastUserAttachments = const [];
 
   @override
   Iterable<ChatMessage> get history => List.unmodifiable(_history);
@@ -75,6 +75,7 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
     notifyListeners();
 
     try {
+      _lastUserAttachments = attachments;
       // Add user message to history
       final userMessage = ChatMessage.user(prompt, attachments);
       _history.add(userMessage);
@@ -136,6 +137,12 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
             'Gets today\'s date. Use this when the user needs the current date or calendar info.',
         parameters: {},
       ),
+      LlmFunctionTool(
+        name: 'summarize_attached_pdf',
+        description:
+            'Summarize the PDF attached to the most recent user message.',
+        parameters: {},
+      ),
     ];
   }
 
@@ -144,6 +151,12 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
     Map<String, String> arguments,
   ) async {
     switch (name) {
+      case 'summarize_attached_pdf':
+        final summary = await _summarizeAttachedPdf();
+        if (summary == null) {
+          return {'error': 'No PDF attachment found or unable to summarize.'};
+        }
+        return {'summary': summary};
       case 'get_today_date':
         final today = DateTime.now();
         const months = [
@@ -161,13 +174,53 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
           'December',
         ];
         final monthName = months[today.month - 1];
-        return {
-          'today_date': '${today.day} $monthName ${today.year}',
-        };
+        return {'today_date': '${today.day} $monthName ${today.year}'};
       default:
         // Try to execute from ToolsManager
         // This would require importing tools_manager
         return null;
+    }
+  }
+
+  Future<String?> _summarizeAttachedPdf() async {
+    final pdfAttachment = _lastUserAttachments.firstWhere(
+      (attachment) =>
+          attachment is FileAttachment &&
+          ((attachment.mimeType).toLowerCase() == 'application/pdf' ||
+              attachment.name.toLowerCase().endsWith('.pdf')),
+      orElse: () => LinkAttachment(name: '', url: Uri()),
+    );
+
+    if (pdfAttachment is! FileAttachment) return null;
+
+    final text = _extractTextFromPdf(pdfAttachment.bytes);
+    if (text.trim().isEmpty) return null;
+
+    final truncated = text.length > 6000 ? text.substring(0, 6000) : text;
+    final request = LlmGenerationRequest(
+      prompt: 'Please summarize the following PDF content:\n\n$truncated',
+      systemPrompt: 'You are a helpful assistant that summarizes documents.',
+      temperature: 0.4,
+      maxTokens: 512,
+      enableFunctionCalling: false,
+    );
+
+    final response = await llmService.generate(request);
+    if (!response.isComplete || response.errorMessage != null) {
+      return null;
+    }
+    return response.content;
+  }
+
+  String _extractTextFromPdf(Uint8List pdfData) {
+    try {
+      final document = PdfDocument(inputBytes: pdfData);
+      final extractor = PdfTextExtractor(document);
+      final String text = extractor.extractText();
+      document.dispose();
+      return text;
+    } catch (_) {
+      return '';
     }
   }
 

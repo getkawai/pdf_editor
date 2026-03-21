@@ -125,7 +125,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           _provider = LocalLlmProvider(
             llmService: _llmService,
             systemPrompt:
-                'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools.',
+                'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform PDF tasks like summarizing attached PDFs.',
           );
         } else {
           _modelError = _llmService.lastError ?? 'Failed to load model';
