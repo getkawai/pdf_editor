@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:cactus/cactus.dart';
+import 'package:flutter/foundation.dart';
 import 'llm_models.dart';
+import '../services/analytics_service.dart';
 
 /// Service for managing LLM inference using Cactus
 class LlmService {
@@ -44,6 +46,12 @@ class LlmService {
       return true;
     } catch (e) {
       _error = 'Failed to initialize LLM backend: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_init_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {'exception': e.toString()},
+      );
       return false;
     }
   }
@@ -57,6 +65,12 @@ class LlmService {
       return await _model!.getModels();
     } catch (e) {
       _error = 'Failed to fetch models: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_get_models_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {'exception': e.toString()},
+      );
       return [];
     }
   }
@@ -90,6 +104,16 @@ class LlmService {
       return true;
     } catch (e) {
       _error = 'Failed to load model: $e';
+      AnalyticsService().logError(
+        errorType: 'llm_load_model_failed',
+        errorMessage: _error!,
+        screen: 'llm_service',
+        metadata: {
+          'model': model.slug,
+          'context_size': contextSize ?? 2048,
+          'exception': e.toString(),
+        },
+      );
       return false;
     }
   }
@@ -97,6 +121,11 @@ class LlmService {
   /// Generate text from a prompt (non-streaming)
   Future<LlmGenerationResponse> generate(LlmGenerationRequest request) async {
     if (_model == null || _currentModel == null) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_no_model',
+        errorMessage: 'No model loaded',
+        screen: 'llm_service',
+      );
       return LlmGenerationResponse.error('No model loaded');
     }
 
@@ -150,6 +179,15 @@ class LlmService {
         isComplete: true,
       );
     } catch (e) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_exception',
+        errorMessage: e.toString(),
+        screen: 'llm_service',
+        metadata: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'prompt_len': request.prompt.length,
+        },
+      );
       return LlmGenerationResponse.error('Generation failed: $e');
     }
   }
@@ -236,19 +274,49 @@ class LlmService {
     bool includeTools = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    final result = await _model!.generateCompletion(
-      messages: messages,
-      params: _buildCompletionParams(request, includeTools: includeTools),
-    );
+    final params = _buildCompletionParams(request, includeTools: includeTools);
+    try {
+      if (kDebugMode) {
+        debugPrint(
+          'LLM generateCompletion: model=${_currentModel?.slug} '
+          'context=${_currentContextSize ?? 'n/a'} '
+          'tools=${params.tools?.length ?? 0} '
+          'maxTokens=${params.maxTokens} '
+          'topP=${params.topP} '
+          'temp=${params.temperature}',
+        );
+      }
+      final result = await _model!.generateCompletion(
+        messages: messages,
+        params: params,
+      );
 
-    stopwatch.stop();
+      stopwatch.stop();
 
-    return _InternalGeneration(
-      response: result.response,
-      toolCalls: result.toolCalls,
-      tokensGenerated: result.totalTokens,
-      duration: stopwatch.elapsed,
-    );
+      return _InternalGeneration(
+        response: result.response,
+        toolCalls: result.toolCalls,
+        tokensGenerated: result.totalTokens,
+        duration: stopwatch.elapsed,
+      );
+    } catch (e) {
+      AnalyticsService().logError(
+        errorType: 'llm_generate_failure',
+        errorMessage: e.toString(),
+        screen: 'llm_service',
+        metadata: {
+          'model': _currentModel?.slug ?? 'unknown',
+          'context_size': _currentContextSize ?? -1,
+          'tools_count': params.tools?.length ?? 0,
+          'max_tokens': params.maxTokens,
+          'top_p': params.topP ?? -1,
+          'temperature': params.temperature ?? -1,
+          'include_tools': includeTools,
+        },
+      );
+      stopwatch.stop();
+      rethrow;
+    }
   }
 
   List<ChatMessage> _buildMessages({

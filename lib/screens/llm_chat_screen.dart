@@ -59,6 +59,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         errorType: 'llm_init_failed',
         errorMessage: _llmService.lastError ?? 'LLM init failed',
         screen: 'llm_chat',
+        metadata: {'stage': 'initialize'},
       );
     }
     if (mounted) {
@@ -75,6 +76,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         screen: 'llm_chat',
         exception: e,
         stackTrace: st,
+        metadata: {'stage': 'get_models'},
       );
     }
 
@@ -130,6 +132,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           errorType: 'llm_load_model_failed',
           errorMessage: _llmService.lastError ?? 'Failed to load model',
           screen: 'llm_chat',
+          metadata: {'model': model.slug},
         );
       }
 
@@ -218,13 +221,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               'role': 'assistant',
               'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
             });
-            
             // Log error
             _analytics.logError(
               errorType: 'llm_generation_error',
               errorMessage: response.errorMessage ?? 'Unknown error',
               screen: 'llm_chat',
               exception: response.errorMessage ?? 'Unknown error',
+              metadata: {
+                'model': _selectedModelSlug ?? 'unknown',
+                'is_complete': response.isComplete,
+              },
             );
           }
         });
@@ -235,7 +241,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
-        
         // Log error
         _analytics.logError(
           errorType: 'llm_exception',
@@ -243,6 +248,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           screen: 'llm_chat',
           exception: e,
           stackTrace: st,
+          metadata: {'model': _selectedModelSlug ?? 'unknown'},
         );
       }
     }

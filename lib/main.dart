@@ -1,36 +1,9 @@
-import 'dart:ui';
-
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'screens/main_navigation_screen.dart';
-import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  await _initializeCrashlytics();
-
   runApp(const PdfEditorApp());
-}
-
-Future<void> _initializeCrashlytics() async {
-  final FirebaseCrashlytics crashlytics = FirebaseCrashlytics.instance;
-
-  FlutterError.onError = crashlytics.recordFlutterError;
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    crashlytics.recordError(error, stack, fatal: true);
-    return true;
-  };
-
-  await crashlytics.setCrashlyticsCollectionEnabled(true);
 }
 
 class PdfEditorApp extends StatelessWidget {
@@ -121,16 +94,6 @@ class PdfEditorApp extends StatelessWidget {
   }
 
   List<NavigatorObserver> _buildNavigatorObservers() {
-    if (Firebase.apps.isEmpty) {
-      return const <NavigatorObserver>[];
-    }
-    try {
-      final analytics = FirebaseAnalytics.instance;
-      return <NavigatorObserver>[
-        FirebaseAnalyticsObserver(analytics: analytics),
-      ];
-    } catch (_) {
-      return const <NavigatorObserver>[];
-    }
+    return const <NavigatorObserver>[];
   }
 }

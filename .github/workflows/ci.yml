@@ -2,9 +2,6 @@ name: CI
 
 on:
   push:
-    branches: ["main", "master"]
-    tags: ["v*"]
-  pull_request:
 
 permissions:
   contents: read
@@ -12,7 +9,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,7 +54,6 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name) && !startsWith(github.ref, 'refs/tags/v') }}
     needs: [test]
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
@@ -73,6 +68,22 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache Android SDK components
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}
+          key: ${{ runner.os }}-androidsdk-v4
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-v4-
+
+      - name: Cache Android SDK licenses
+        uses: actions/cache@v4
+        with:
+          path: ~/.android
+          key: ${{ runner.os }}-androidsdk-licenses-v1
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-licenses-
+
       - name: Cache Flutter pub deps
         uses: actions/cache@v4
         with:
@@ -86,14 +97,6 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Cache Android SDK components
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.ANDROID_SDK_ROOT }}
-          key: ${{ runner.os }}-androidsdk-v4-full-${{ hashFiles('android/**', '.github/workflows/ci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-androidsdk-v4-
-
       - name: Install NDK + CMake
         shell: bash
         run: |
@@ -102,86 +105,47 @@ jobs:
           yes | sdkmanager --licenses > /dev/null
           echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/28.2.13676358" >> $GITHUB_ENV
 
-      - name: Inject Firebase config (google-services.json)
-        shell: bash
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-            echo "✓ Injected google-services.json"
-          else
-            echo "⚠️ GOOGLE_SERVICES_JSON secret not set, skipping injection"
-          fi
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: Inject Firebase config (firebase_options.dart)
-        shell: bash
-        run: |
-          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
-            echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
-            echo "✓ Injected firebase_options.dart"
-          else
-            echo "⚠️ FIREBASE_OPTIONS_DART secret not set, skipping injection"
-          fi
-        env:
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
-
       - name: Build Android APK
-        run: flutter build apk --debug
+        run: flutter build apk --release
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           retention-days: 30
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   release:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ needs.android.result == 'success' }}
     permissions:
       contents: write
-      actions: read
     needs: [android]
     steps:
-      - name: Resolve build run ID
-        id: resolve_run
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Compute tag name
+        id: tag
+        shell: bash
         run: |
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs" \
-            --jq '.workflow_runs
-              | map(select(.event=="push"
-                and (.head_branch=="main" or .head_branch=="master")
-                and .conclusion=="success"
-                and .head_sha=="${{ github.sha }}"))
-              | first
-              | .id')
-
-          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
-            echo "No successful push build found on main/master for commit ${{ github.sha }}"
-            exit 1
-          fi
-
-          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          short_sha="${GITHUB_SHA:0:12}"
+          echo "tag_name=commit-${short_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Download Android APK
-        uses: dawidd6/action-download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          run_id: ${{ steps.resolve_run.outputs.run_id }}
           name: android-apk
           path: android-apk
 
       - name: Archive artifacts
         run: |
-          tar -czf android-apk.tar.gz -C android-apk .
-          shasum -a 256 android-apk.tar.gz > checksums.txt
+          apk_path=$(ls -1 android-apk/*.apk 2>/dev/null | head -n 1 || true)
+          if [ -z "$apk_path" ]; then
+            echo "No APK found in android-apk/"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag_name }}
           files: |
-            android-apk.tar.gz
-            checksums.txt
+            android-apk/*.apk
