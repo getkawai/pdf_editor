@@ -20,11 +20,21 @@ class _ToolsScreenState extends State<ToolsScreen> {
   late List<PdfTool> _tools;
   bool _isLoading = true;
   final AnalyticsService _analytics = AnalyticsService();
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _loadTools();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTools() async {
@@ -37,21 +47,101 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredTools = _filteredTools();
+    final groupedTools = _groupTools(filteredTools);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('PDF Tools'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
+          : ListView(
               padding: const EdgeInsets.all(16),
-              itemCount: _tools.length,
-              itemBuilder: (context, index) {
-                final tool = _tools[index];
-                return _buildToolCard(tool);
-              },
+              children: [
+                _buildSearchBar(context),
+                const SizedBox(height: 16),
+                if (filteredTools.isEmpty)
+                  _buildEmptyState(context)
+                else
+                  ...groupedTools.entries.map(
+                    (entry) => _buildToolSection(
+                      context,
+                      title: entry.key,
+                      tools: entry.value,
+                    ),
+                  ),
+              ],
             ),
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search tools',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  _searchController.clear();
+                  FocusScope.of(context).unfocus();
+                },
+              ),
+      ),
+    );
+  }
+
+  Widget _buildToolSection(
+    BuildContext context, {
+    required String title,
+    required List<PdfTool> tools,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ...tools.map(_buildToolCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.search_off,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No tools match your search.',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Try a different keyword or clear the search.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 
@@ -121,11 +211,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
         iconData = Icons.build;
     }
 
+    final category = _categoryFor(tool);
+    final isAi = tool.id.contains('ai') || tool.id.contains('summarize');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => _openTool(tool),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -134,7 +227,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   iconData,
@@ -162,6 +255,28 @@ class _ToolsScreenState extends State<ToolsScreen> {
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        Chip(
+                          label: Text(category),
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
+                        ),
+                        if (isAi)
+                          Chip(
+                            label: const Text('AI'),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withValues(alpha: 0.15),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -174,6 +289,83 @@ class _ToolsScreenState extends State<ToolsScreen> {
         ),
       ),
     );
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _query = _searchController.text.trim();
+    });
+  }
+
+  List<PdfTool> _filteredTools() {
+    if (_query.isEmpty) return _tools;
+    final q = _query.toLowerCase();
+    return _tools.where((tool) {
+      return tool.name.toLowerCase().contains(q) ||
+          tool.description.toLowerCase().contains(q) ||
+          tool.id.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  Map<String, List<PdfTool>> _groupTools(List<PdfTool> tools) {
+    final Map<String, List<PdfTool>> grouped = {
+      'Create & Convert': [],
+      'Edit & Layout': [],
+      'Organize': [],
+      'Enhance': [],
+      'Security': [],
+      'AI': [],
+      'Other': [],
+    };
+
+    for (final tool in tools) {
+      final category = _categoryFor(tool);
+      grouped.putIfAbsent(category, () => []).add(tool);
+    }
+
+    grouped.removeWhere((_, value) => value.isEmpty);
+    return grouped;
+  }
+
+  String _categoryFor(PdfTool tool) {
+    switch (tool.id) {
+      case 'text_to_pdf':
+      case 'image_to_pdf':
+      case 'table_to_pdf':
+      case 'list_to_pdf':
+      case 'paragraph_to_pdf':
+      case 'table_pdf':
+      case 'bullets_lists':
+      case 'header_footer':
+        return 'Create & Convert';
+      case 'annotate_pdf':
+      case 'shapes_pdf':
+      case 'rtl_text':
+      case 'hyperlink_pdf':
+      case 'bookmark_pdf':
+      case 'attachment_pdf':
+        return 'Edit & Layout';
+      case 'merge_pdfs':
+      case 'compress_pdf':
+        return 'Organize';
+      case 'ocr_pdf':
+      case 'pdf_a_conformance':
+      case 'convert_to_pdf_a':
+      case 'conformance_pdf':
+        return 'Enhance';
+      case 'encrypt_pdf':
+      case 'decrypt_pdf':
+      case 'signature_pdf':
+      case 'create_signed_pdf':
+      case 'verify_signature_pdf':
+      case 'digital_signature':
+        return 'Security';
+      case 'ai_pdf_assistant':
+      case 'summarize_pdf':
+        return 'AI';
+      default:
+        return 'Other';
+    }
   }
 
   Future<void> _openTool(PdfTool tool) async {

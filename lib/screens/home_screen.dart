@@ -98,13 +98,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final canNavigateTabs = widget.onNavigateToTab != null;
     final width = MediaQuery.of(context).size.width;
     final isTablet = width >= 600;
-    final horizontalPadding = isTablet ? 32.0 : 24.0;
-    final heroIconSize = isTablet ? 120.0 : 96.0;
+    final horizontalPadding = isTablet ? 32.0 : 20.0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('PDF Editor'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -113,178 +111,272 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                Theme.of(context).scaffoldBackgroundColor,
+              ],
+            ),
+          ),
           child: Center(
             child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: 24,
-            ),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOut,
-              opacity: _animateIn ? 1 : 0,
-              child: AnimatedSlide(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 24,
+              ),
+              child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 350),
                 curve: Curves.easeOut,
-                offset: _animateIn ? Offset.zero : const Offset(0, 0.02),
-                child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.picture_as_pdf,
-                  size: heroIconSize,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'PDF Editor',
-                  style: isTablet
-                      ? Theme.of(context).textTheme.headlineLarge
-                      : Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'View, create, and edit PDF documents',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 28),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Quick Actions',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final maxWidth = constraints.maxWidth;
-                    final columns = maxWidth >= 900
-                        ? 4
-                        : maxWidth >= 600
-                            ? 3
-                            : maxWidth >= 420
-                                ? 2
-                                : 1;
-                    const spacing = 16.0;
-                    final cardWidth = columns == 1
-                        ? maxWidth
-                        : (maxWidth - spacing * (columns - 1)) / columns;
-
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: spacing,
-                      children: [
-                        _buildQuickAction(
-                          context,
-                          width: cardWidth,
-                          icon: Icons.folder_open,
-                          title: 'Open PDF',
-                          subtitle: 'Pick a PDF file',
-                          onTap: _pickAndOpenPDF,
-                        ),
-                        _buildQuickAction(
-                          context,
-                          width: cardWidth,
-                          icon: Icons.add_circle_outline,
-                          title: 'Create New',
-                          subtitle: 'Start from scratch',
-                          onTap: _createNewPDF,
-                        ),
-                        if (canNavigateTabs)
-                          _buildQuickAction(
-                            context,
-                            width: cardWidth,
-                            icon: Icons.build,
-                            title: 'PDF Tools',
-                            subtitle: 'Merge, compress, annotate',
-                            onTap: () => widget.onNavigateToTab!(1),
-                          ),
-                        if (canNavigateTabs)
-                          _buildQuickAction(
-                            context,
-                            width: cardWidth,
-                            icon: Icons.document_scanner,
-                            title: 'Scan Doc',
-                            subtitle: 'Capture with camera',
-                            onTap: () => widget.onNavigateToTab!(2),
-                          ),
-                        if (canNavigateTabs)
-                          _buildQuickAction(
-                            context,
-                            width: cardWidth,
-                            icon: Icons.smart_toy,
-                            title: 'AI Chat',
-                            subtitle: 'Ask about your PDF',
-                            onTap: () => widget.onNavigateToTab!(3),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Stats',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _buildStatChip(
-                      context,
-                      label: 'Tools Available',
-                      value: _toolsCount.toString(),
-                      icon: Icons.build,
-                    ),
-                    if (_recentFilePath != null)
-                      _buildStatChip(
+                opacity: _animateIn ? 1 : 0,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOut,
+                  offset: _animateIn ? Offset.zero : const Offset(0, 0.02),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHeroCard(
                         context,
-                        label: 'Last Opened',
-                        value: _recentFilePath!.split('/').last,
-                        icon: Icons.history,
+                        isTablet: isTablet,
+                        canNavigateTabs: canNavigateTabs,
                       ),
-                  ],
-                ),
-                if (_recentFilePath != null) ...[
-                  const SizedBox(height: 24),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Recent',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(
+                        context,
+                        title: 'Quick Actions',
+                        subtitle: 'Jump back in or start fresh.',
+                      ),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final maxWidth = constraints.maxWidth;
+                          final columns = maxWidth >= 900
+                              ? 4
+                              : maxWidth >= 600
+                                  ? 3
+                                  : maxWidth >= 420
+                                      ? 2
+                                      : 1;
+                          const spacing = 16.0;
+                          final cardWidth = columns == 1
+                              ? maxWidth
+                              : (maxWidth - spacing * (columns - 1)) / columns;
+
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: [
+                              _buildQuickAction(
+                                context,
+                                width: cardWidth,
+                                icon: Icons.folder_open,
+                                title: 'Open PDF',
+                                subtitle: 'Pick a PDF file',
+                                onTap: _pickAndOpenPDF,
+                                isPrimary: true,
+                              ),
+                              _buildQuickAction(
+                                context,
+                                width: cardWidth,
+                                icon: Icons.add_circle_outline,
+                                title: 'Create New',
+                                subtitle: 'Start from scratch',
+                                onTap: _createNewPDF,
+                              ),
+                              if (canNavigateTabs)
+                                _buildQuickAction(
+                                  context,
+                                  width: cardWidth,
+                                  icon: Icons.build,
+                                  title: 'PDF Tools',
+                                  subtitle: 'Merge, compress, annotate',
+                                  onTap: () => widget.onNavigateToTab!(1),
+                                ),
+                              if (canNavigateTabs)
+                                _buildQuickAction(
+                                  context,
+                                  width: cardWidth,
+                                  icon: Icons.document_scanner,
+                                  title: 'Scan Doc',
+                                  subtitle: 'Capture with camera',
+                                  onTap: () => widget.onNavigateToTab!(2),
+                                ),
+                              if (canNavigateTabs)
+                                _buildQuickAction(
+                                  context,
+                                  width: cardWidth,
+                                  icon: Icons.smart_toy,
+                                  title: 'AI Chat',
+                                  subtitle: 'Ask about your PDF',
+                                  onTap: () => widget.onNavigateToTab!(3),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(
+                        context,
+                        title: 'Workspace',
+                        subtitle: 'Your recent activity and tools.',
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _buildStatChip(
+                            context,
+                            label: 'Tools Available',
+                            value: _toolsCount.toString(),
+                            icon: Icons.build,
+                          ),
+                          if (_recentFilePath != null)
+                            _buildStatChip(
+                              context,
+                              label: 'Last Opened',
+                              value: _recentFilePath!.split('/').last,
+                              icon: Icons.history,
+                            ),
+                        ],
+                      ),
+                      if (_recentFilePath != null) ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _openRecentPdf,
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text('Continue Editing'),
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'No recent file yet. Open a PDF to get started.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _recentFilePath!.split('/').last,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _openRecentPdf,
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Continue Editing'),
-                    ),
-                  ),
-                ],
-              ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(
+    BuildContext context, {
+    required bool isTablet,
+    required bool canNavigateTabs,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 28 : 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.picture_as_pdf,
+                  size: isTablet ? 48 : 40,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Make PDFs feel effortless',
+                      style: isTablet
+                          ? Theme.of(context).textTheme.headlineMedium
+                          : Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Open, edit, or scan files with a fast local toolkit.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton.icon(
+                onPressed: _pickAndOpenPDF,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Open PDF'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _createNewPDF,
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text('Create New'),
+              ),
+              if (canNavigateTabs)
+                OutlinedButton.icon(
+                  onPressed: () => widget.onNavigateToTab!(1),
+                  icon: const Icon(Icons.build),
+                  label: const Text('Explore Tools'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+        ],
       ),
     );
   }
@@ -296,12 +388,16 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    bool isPrimary = false,
   }) {
     return SizedBox(
       width: width,
       child: Card(
+        color: isPrimary
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).cardColor,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -311,7 +407,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(
                   icon,
                   size: 28,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: isPrimary
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(height: 12),
                 Text(

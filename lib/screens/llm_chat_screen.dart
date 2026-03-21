@@ -45,6 +45,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   String? _selectedModelSlug;
   bool _enableTools = true;
   DateTime? _requestStartTime;
+  bool _showModelSheet = false;
 
   @override
   void initState() {
@@ -266,7 +267,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Chat'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: Icon(
@@ -280,7 +280,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       ),
       body: Column(
         children: [
-          _buildModelLoader(),
+          _buildModelStatusBar(),
           const Divider(height: 1),
           Expanded(
             child: _messages.isEmpty
@@ -291,7 +291,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          'No messages yet\nLoad a model and start chatting!',
+                          'No messages yet\nLoad a model to start chatting.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey),
                         ),
@@ -322,87 +322,150 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     );
   }
 
-  Widget _buildModelLoader() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Model',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          if (_isLoadingModels)
-          const Text('Loading supported models...')
-          else if (_availableModels.isEmpty)
-            const Text('No models available. Try again later.')
-          else
-            DropdownButtonFormField<String>(
-              value: _selectedModelSlug,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Select model',
-              ),
-              items: _availableModels.map((model) {
-                final supportsTools = model.supportsToolCalling ? ' • tools' : '';
-                final downloaded = model.isDownloaded ? ' • downloaded' : '';
-                final suffix = '$supportsTools$downloaded';
-                return DropdownMenuItem<String>(
-                  value: model.slug,
-                  child: Text('${model.name} (${model.slug})$suffix'),
-                );
-              }).toList(),
-              onChanged: _isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _selectedModelSlug = value;
-                        final selected = _availableModels
-                            .where((m) => m.slug == value)
-                            .toList();
-                        final model = selected.isNotEmpty ? selected.first : null;
-                        if (model != null && !model.supportsToolCalling) {
-                          _enableTools = false;
-                        }
-                      });
-                    },
+  Widget _buildModelStatusBar() {
+    final statusText = _isModelLoaded
+        ? 'Model loaded: ${_selectedModelSlug ?? 'unknown'}'
+        : 'No model loaded';
+    final statusColor = _isModelLoaded
+        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+        : Colors.red.withValues(alpha: 0.12);
+
+    return InkWell(
+      onTap: _openModelSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: statusColor,
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).dividerColor,
             ),
-          const SizedBox(height: 8),
-          if (_selectedModelSlug != null)
-            Builder(
-              builder: (context) {
-                final selected = _availableModels
-                    .where((m) => m.slug == _selectedModelSlug)
-                    .toList();
-                final model = selected.isNotEmpty ? selected.first : null;
-                final supportsTools = model?.supportsToolCalling == true;
-                if (!supportsTools) return const SizedBox.shrink();
-                return SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Enable tools (function calling)'),
-                  value: _enableTools,
-                  onChanged: _isLoading
-                      ? null
-                      : (value) => setState(() => _enableTools = value),
-                );
-              },
-            ),
-          if (_selectedModelSlug != null) const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: (_isLoading || _isLoadingModels) ? null : _loadModel,
-            child: const Text('Download & Load'),
           ),
-          if (_selectedModelSlug != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _isModelLoaded ? Icons.check_circle : Icons.error,
+              color: _isModelLoaded ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                'Loaded: $_selectedModelSlug',
-                style: TextStyle(color: Colors.green.shade700),
+                statusText,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-        ],
+            TextButton(
+              onPressed: _openModelSheet,
+              child: const Text('Model Settings'),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _openModelSheet() {
+    if (_showModelSheet) return;
+    _showModelSheet = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          top: 8,
+        ),
+        child: _buildModelLoader(),
+      ),
+    ).whenComplete(() {
+      _showModelSheet = false;
+    });
+  }
+
+  Widget _buildModelLoader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Model',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        if (_isLoadingModels)
+          const Text('Loading supported models...')
+        else if (_availableModels.isEmpty)
+          const Text('No models available. Try again later.')
+        else
+          DropdownButtonFormField<String>(
+            value: _selectedModelSlug,
+            decoration: const InputDecoration(
+              labelText: 'Select model',
+            ),
+            items: _availableModels.map((model) {
+              final supportsTools = model.supportsToolCalling ? ' • tools' : '';
+              final downloaded = model.isDownloaded ? ' • downloaded' : '';
+              final suffix = '$supportsTools$downloaded';
+              return DropdownMenuItem<String>(
+                value: model.slug,
+                child: Text('${model.name} (${model.slug})$suffix'),
+              );
+            }).toList(),
+            onChanged: _isLoading
+                ? null
+                : (value) {
+                    setState(() {
+                      _selectedModelSlug = value;
+                      final selected = _availableModels
+                          .where((m) => m.slug == value)
+                          .toList();
+                      final model = selected.isNotEmpty ? selected.first : null;
+                      if (model != null && !model.supportsToolCalling) {
+                        _enableTools = false;
+                      }
+                    });
+                  },
+          ),
+        const SizedBox(height: 8),
+        if (_selectedModelSlug != null)
+          Builder(
+            builder: (context) {
+              final selected = _availableModels
+                  .where((m) => m.slug == _selectedModelSlug)
+                  .toList();
+              final model = selected.isNotEmpty ? selected.first : null;
+              final supportsTools = model?.supportsToolCalling == true;
+              if (!supportsTools) return const SizedBox.shrink();
+              return SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enable tools (function calling)'),
+                value: _enableTools,
+                onChanged: _isLoading
+                    ? null
+                    : (value) => setState(() => _enableTools = value),
+              );
+            },
+          ),
+        if (_selectedModelSlug != null) const SizedBox(height: 8),
+        ElevatedButton(
+          onPressed: (_isLoading || _isLoadingModels) ? null : _loadModel,
+          child: const Text('Download & Load'),
+        ),
+        if (_selectedModelSlug != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Loaded: $_selectedModelSlug',
+              style: TextStyle(color: Colors.green.shade700),
+            ),
+          ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
