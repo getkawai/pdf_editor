@@ -22,7 +22,7 @@ class ToolkitIcons {
   const ToolkitIcons._();
 
   static const _kFontFam = 'FatIcons';
-  static const String _kFontPkg = 'flutter_ai_toolkit';
+  static const String? _kFontPkg = null;
 
   /// Icon for submitting or sending.
   static const IconData submit_icon = IconData(
