@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../providers/interface/llm_provider.dart';
@@ -35,8 +36,12 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
     Iterable<Attachment> attachments = const [],
   }) async* {
     try {
+      final augmentedPrompt = await _augmentPromptWithPdfText(
+        prompt,
+        attachments,
+      );
       final request = LlmGenerationRequest(
-        prompt: prompt,
+        prompt: augmentedPrompt,
         systemPrompt: _systemPrompt,
         temperature: 0.7,
         maxTokens: 512,
@@ -86,8 +91,13 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
       _history.add(llmMessage);
       notifyListeners();
 
+      final augmentedPrompt = await _augmentPromptWithPdfText(
+        prompt,
+        attachments,
+      );
+
       final request = LlmGenerationRequest(
-        prompt: prompt,
+        prompt: augmentedPrompt,
         systemPrompt: _systemPrompt,
         temperature: 0.7,
         maxTokens: 512,
@@ -222,6 +232,43 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
     } catch (_) {
       return '';
     }
+  }
+
+  Future<String> _augmentPromptWithPdfText(
+    String prompt,
+    Iterable<Attachment> attachments,
+  ) async {
+    final pdfAttachments = attachments.where(
+      (attachment) =>
+          attachment is FileAttachment &&
+          ((attachment.mimeType).toLowerCase() == 'application/pdf' ||
+              attachment.name.toLowerCase().endsWith('.pdf')),
+    );
+
+    if (pdfAttachments.isEmpty) return prompt;
+
+    final buffer = StringBuffer(prompt);
+    for (final attachment in pdfAttachments) {
+      final file = attachment as FileAttachment;
+      final text = _extractTextFromPdf(file.bytes).trim();
+      if (text.isEmpty) {
+        buffer.write(
+          '\n\n[Attached PDF: ${file.name}]'
+          '\n(No extractable text found in this PDF.)',
+        );
+        continue;
+      }
+      final truncated = text.length > 8000 ? text.substring(0, 8000) : text;
+      buffer.write(
+        '\n\n[Attached PDF: ${file.name}]'
+        '\n$truncated',
+      );
+      if (text.length > 8000) {
+        buffer.write('\n[Text truncated]');
+      }
+    }
+
+    return buffer.toString();
   }
 
   /// Clears the chat history.
