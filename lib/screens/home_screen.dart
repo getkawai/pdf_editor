@@ -8,9 +8,10 @@ import '../services/analytics_service.dart';
 import '../tools/tools_manager.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.onNavigateToTab});
+  const HomeScreen({super.key, this.onNavigateToTab, this.drawer});
 
   final ValueChanged<int>? onNavigateToTab;
+  final Widget? drawer;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -72,10 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _recentFilePath = result.files.single.path!;
         });
-        
+
         // Log analytics
         _analytics.logOpenPdf(source: 'file_picker');
-        
+
         if (mounted) {
           Navigator.push(
             context,
@@ -87,10 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening PDF: $e')),
-        );
-        
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error opening PDF: $e')));
+
         // Log error
         _analytics.logError(
           errorType: 'file_picker_error',
@@ -104,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _createNewPDF() async {
     // Log analytics
     _analytics.logCreatePdf();
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PdfEditorScreen()),
@@ -120,9 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _recentFilePath = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recent file not found.')),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Recent file not found.')));
       return;
     }
     _analytics.logOpenPdf(source: 'recent');
@@ -143,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final horizontalPadding = isTablet ? 32.0 : 20.0;
 
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('PDF Editor'),
         actions: [
@@ -199,10 +202,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           final columns = maxWidth >= 900
                               ? 4
                               : maxWidth >= 600
-                                  ? 3
-                                  : maxWidth >= 420
-                                      ? 2
-                                      : 1;
+                              ? 3
+                              : maxWidth >= 420
+                              ? 2
+                              : 1;
                           const spacing = 16.0;
                           final cardWidth = columns == 1
                               ? maxWidth
@@ -236,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.build,
                                   title: 'PDF Tools',
                                   subtitle: 'Merge, compress, annotate',
-                                  onTap: () => widget.onNavigateToTab!(1),
+                                  onTap: () => widget.onNavigateToTab!(2),
                                 ),
                               if (canNavigateTabs)
                                 _buildQuickAction(
@@ -245,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.document_scanner,
                                   title: 'Scan Doc',
                                   subtitle: 'Capture with camera',
-                                  onTap: () => widget.onNavigateToTab!(2),
+                                  onTap: () => widget.onNavigateToTab!(3),
                                 ),
                               if (canNavigateTabs)
                                 _buildQuickAction(
@@ -254,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.smart_toy,
                                   title: 'AI Chat',
                                   subtitle: 'Ask about your PDF',
-                                  onTap: () => widget.onNavigateToTab!(3),
+                                  onTap: () => widget.onNavigateToTab!(0),
                                 ),
                             ],
                           );
@@ -394,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (canNavigateTabs)
                 OutlinedButton.icon(
-                  onPressed: () => widget.onNavigateToTab!(1),
+                  onPressed: () => widget.onNavigateToTab!(2),
                   icon: const Icon(Icons.build),
                   label: const Text('Explore Tools'),
                 ),
@@ -454,15 +457,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       : Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
@@ -493,10 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+              Text(label, style: Theme.of(context).textTheme.labelSmall),
               const SizedBox(height: 2),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 200),

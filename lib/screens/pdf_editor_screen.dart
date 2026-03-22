@@ -38,16 +38,16 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
           _selectedImagePath = result.files.single.path!;
         });
         _showAddImageDialog();
-        
+
         // Log analytics
         _analytics.logEditPdf(editType: 'add_image');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
-        
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+
         // Log error
         _analytics.logError(
           errorType: 'image_picker_error',
@@ -81,7 +81,12 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
         graphics.drawString(
           _titleController.text,
           titleFont,
-          bounds: Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 50),
+          bounds: Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            50,
+          ),
         );
         yOffset += 60;
       }
@@ -92,7 +97,12 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
         graphics.drawString(
           text,
           textFont,
-          bounds: Rect.fromLTWH(50, yOffset, page.graphics.clientSize.width - 100, 200),
+          bounds: Rect.fromLTWH(
+            50,
+            yOffset,
+            page.graphics.clientSize.width - 100,
+            200,
+          ),
         );
         yOffset += 220;
       }
@@ -104,7 +114,8 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
         final PdfImage pdfImage = PdfBitmap(imageBytes);
 
         final double imageWidth = 200;
-        final double imageHeight = (pdfImage.height * imageWidth) / pdfImage.width;
+        final double imageHeight =
+            (pdfImage.height * imageWidth) / pdfImage.width;
 
         graphics.drawImage(
           pdfImage,
@@ -117,7 +128,8 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       if (signatureData != null) {
         final PdfImage signatureImage = PdfBitmap(signatureData);
         final double signatureWidth = 200;
-        final double signatureHeight = (signatureImage.height * signatureWidth) / signatureImage.width;
+        final double signatureHeight =
+            (signatureImage.height * signatureWidth) / signatureImage.width;
 
         graphics.drawImage(
           signatureImage,
@@ -126,8 +138,8 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       }
 
       // Save the document
-      final Directory? appDir = await getApplicationDocumentsDirectory();
-      final String dirPath = appDir!.path;
+      final Directory appDir = await getApplicationDocumentsDirectory();
+      final String dirPath = appDir.path;
       final String fileName = _titleController.text.isEmpty
           ? 'document_${DateTime.now().millisecondsSinceEpoch}.pdf'
           : '${_titleController.text.replaceAll(' ', '_')}.pdf';
@@ -137,28 +149,27 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
       document.dispose();
 
       // Log analytics
-      _analytics.logSavePdf(
-        documentId: fileName,
-        pageCount: 1,
-      );
+      _analytics.logSavePdf(documentId: fileName, pageCount: 1);
       _analytics.logEditPdf(
-        editType: text != null ? 'add_text' : imagePath != null ? 'add_image' : 'create',
+        editType: text != null
+            ? 'add_text'
+            : imagePath != null
+            ? 'add_image'
+            : 'create',
         details: 'title: ${_titleController.text.isNotEmpty ? 'yes' : 'no'}',
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PDF saved to: $fileName'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('PDF saved to: $fileName')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating PDF: $e')),
-        );
-        
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating PDF: $e')));
+
         // Log error
         _analytics.logError(
           errorType: 'pdf_creation_error',
@@ -314,9 +325,7 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create PDF'),
-      ),
+      appBar: AppBar(title: const Text('Create PDF')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -427,7 +436,9 @@ class _PdfEditorScreenState extends State<PdfEditorScreen> {
                 child: Icon(
                   icon,
                   color: isDisabled
-                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4)
                       : Theme.of(context).colorScheme.primary,
                   size: 28,
                 ),
@@ -526,7 +537,13 @@ class _SignaturePainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, (size.height - textPainter.height) / 2));
+    textPainter.paint(
+      canvas,
+      Offset(
+        (size.width - textPainter.width) / 2,
+        (size.height - textPainter.height) / 2,
+      ),
+    );
   }
 
   @override

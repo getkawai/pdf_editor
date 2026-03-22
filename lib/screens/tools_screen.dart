@@ -12,7 +12,9 @@ import 'widgets/annotations_editor_widget.dart';
 import 'widgets/lists_editor_widget.dart';
 
 class ToolsScreen extends StatefulWidget {
-  const ToolsScreen({super.key});
+  const ToolsScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<ToolsScreen> createState() => _ToolsScreenState();
@@ -53,9 +55,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final groupedTools = _groupTools(filteredTools);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PDF Tools'),
-      ),
+      drawer: widget.drawer,
+      appBar: AppBar(title: const Text('PDF Tools')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -128,10 +129,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.search_off,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          Icon(Icons.search_off, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 12),
           Text(
             'No tools match your search.',
@@ -264,28 +262,23 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       children: [
                         Chip(
                           label: Text(category),
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.1),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1),
                         ),
                         if (isAi)
                           Chip(
                             label: const Text('AI'),
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withValues(alpha: 0.15),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.secondary.withValues(alpha: 0.15),
                           ),
                       ],
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey.shade400,
-              ),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400),
             ],
           ),
         ),
@@ -420,7 +413,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
   Future<void> _openTool(PdfTool tool) async {
     // Log tool selection
     _analytics.logUsePdfTool(toolName: tool.id);
-    
+
     switch (tool.id) {
       case 'text_to_pdf':
         await _openTextToPdfTool(tool);
@@ -561,11 +554,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  imageFile,
-                  height: 200,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.file(imageFile, height: 200, fit: BoxFit.contain),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -600,9 +589,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -641,11 +630,12 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () async {
-                      FilePickerResult? result = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['pdf'],
-                        allowMultiple: true,
-                      );
+                      FilePickerResult? result = await FilePicker.platform
+                          .pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['pdf'],
+                            allowMultiple: true,
+                          );
                       if (result != null) {
                         setState(() {
                           selectedFiles = result.files;
@@ -664,24 +654,27 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.08),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: selectedFiles
-                            .map((file) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
-                                  child: Text(
-                                    file.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ))
+                            .map(
+                              (file) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2,
+                                ),
+                                child: Text(
+                                  file.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            )
                             .toList(),
                       ),
                     ),
@@ -724,9 +717,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -766,10 +759,11 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () async {
-                      FilePickerResult? result = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['pdf'],
-                      );
+                      FilePickerResult? result = await FilePicker.platform
+                          .pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['pdf'],
+                          );
                       if (result != null) {
                         setState(() {
                           selectedFile = result.files.single;
@@ -787,16 +781,26 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: level,
+                    initialValue: level,
                     decoration: const InputDecoration(
                       labelText: 'Compression level',
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'low', child: Text('Low (Best quality)')),
-                      DropdownMenuItem(value: 'medium', child: Text('Medium (Balanced)')),
-                      DropdownMenuItem(value: 'high', child: Text('High (Smallest size)')),
+                      DropdownMenuItem(
+                        value: 'low',
+                        child: Text('Low (Best quality)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'medium',
+                        child: Text('Medium (Balanced)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'high',
+                        child: Text('High (Smallest size)'),
+                      ),
                     ],
-                    onChanged: (value) => setState(() => level = value ?? 'medium'),
+                    onChanged: (value) =>
+                        setState(() => level = value ?? 'medium'),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -812,9 +816,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                           onPressed: selectedFile == null
                               ? null
                               : () => Navigator.pop(context, {
-                                    'file': selectedFile,
-                                    'level': level,
-                                  }),
+                                  'file': selectedFile,
+                                  'level': level,
+                                }),
                           child: const Text('Compress'),
                         ),
                       ),
@@ -838,9 +842,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -852,9 +856,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Annotate PDF'),
-          ),
+          appBar: AppBar(title: const Text('Annotate PDF')),
           body: AnnotationsEditorWidget(
             tool: tool,
             analytics: _analytics,
@@ -875,9 +877,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Create Bullets & Lists'),
-          ),
+          appBar: AppBar(title: const Text('Create Bullets & Lists')),
           body: ListsEditorWidget(
             tool: tool,
             analytics: _analytics,
@@ -898,9 +898,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Create Table PDF'),
-          ),
+          appBar: AppBar(title: const Text('Create Table PDF')),
           body: TableEditorWidget(
             tool: tool,
             analytics: _analytics,
@@ -918,7 +916,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final TextEditingController headerController = TextEditingController();
     final TextEditingController footerController = TextEditingController();
     final TextEditingController bodyController = TextEditingController();
-    final TextEditingController pageCountController = TextEditingController(text: '1');
+    final TextEditingController pageCountController = TextEditingController(
+      text: '1',
+    );
 
     if (!mounted) return;
 
@@ -996,9 +996,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Draw Shapes'),
-          ),
+          appBar: AppBar(title: const Text('Draw Shapes')),
           body: ShapesEditorWidget(
             tool: tool,
             analytics: _analytics,
@@ -1074,17 +1072,15 @@ class _ToolsScreenState extends State<ToolsScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      fontName,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(fontName, overflow: TextOverflow.ellipsis),
                   ),
                   TextButton(
                     onPressed: () async {
-                      FilePickerResult? pick = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['ttf', 'otf'],
-                      );
+                      FilePickerResult? pick = await FilePicker.platform
+                          .pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['ttf', 'otf'],
+                          );
                       if (pick != null && pick.files.single.path != null) {
                         final file = File(pick.files.single.path!);
                         final data = await file.readAsBytes();
@@ -1196,7 +1192,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       final Uint8List pdfData = await file.readAsBytes();
 
       final TextEditingController titleController = TextEditingController();
-      final TextEditingController pageController = TextEditingController(text: '1');
+      final TextEditingController pageController = TextEditingController(
+        text: '1',
+      );
 
       final result = await _showToolSheet<Map<String, dynamic>>(
         title: 'Add Bookmark',
@@ -1246,9 +1244,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1261,10 +1259,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
       );
 
       if (pdfPick == null || !mounted) return;
-      final Uint8List pdfData = await File(pdfPick.files.single.path!).readAsBytes();
+      final Uint8List pdfData = await File(
+        pdfPick.files.single.path!,
+      ).readAsBytes();
 
       FilePickerResult? attachmentPick = await FilePicker.platform.pickFiles();
       if (attachmentPick == null || !mounted) return;
+
+      final bodySmallStyle = Theme.of(context).textTheme.bodySmall;
 
       final attachedFile = File(attachmentPick.files.single.path!);
       final Uint8List attachmentData = await attachedFile.readAsBytes();
@@ -1280,7 +1282,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
           children: [
             Text(
               'File: ${attachmentPick.files.single.name}',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: bodySmallStyle,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1316,9 +1318,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1331,7 +1333,13 @@ class _ToolsScreenState extends State<ToolsScreen> {
       );
 
       if (pick == null || !mounted) return;
-      final Uint8List pdfData = await File(pick.files.single.path!).readAsBytes();
+      final titleLargeStyle = Theme.of(context).textTheme.titleLarge;
+      final bodySmallStyle = Theme.of(context).textTheme.bodySmall;
+      final Uint8List pdfData = await File(
+        pick.files.single.path!,
+      ).readAsBytes();
+
+      if (!mounted) return;
 
       final TextEditingController userController = TextEditingController();
       final TextEditingController ownerController = TextEditingController();
@@ -1353,14 +1361,11 @@ class _ToolsScreenState extends State<ToolsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Encrypt PDF',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text('Encrypt PDF', style: titleLargeStyle),
                 const SizedBox(height: 6),
                 Text(
                   'Protect the document with user and owner passwords.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: bodySmallStyle,
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -1382,15 +1387,19 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: algorithm,
+                  initialValue: algorithm,
                   items: const [
                     DropdownMenuItem(value: 'aes256', child: Text('AES-256')),
-                    DropdownMenuItem(value: 'aes256_rev6', child: Text('AES-256 Rev6')),
+                    DropdownMenuItem(
+                      value: 'aes256_rev6',
+                      child: Text('AES-256 Rev6'),
+                    ),
                     DropdownMenuItem(value: 'aes128', child: Text('AES-128')),
                     DropdownMenuItem(value: 'rc4_128', child: Text('RC4-128')),
                     DropdownMenuItem(value: 'rc4_40', child: Text('RC4-40')),
                   ],
-                  onChanged: (value) => setState(() => algorithm = value ?? 'aes256'),
+                  onChanged: (value) =>
+                      setState(() => algorithm = value ?? 'aes256'),
                   decoration: const InputDecoration(
                     labelText: 'Algorithm',
                     prefixIcon: Icon(Icons.security),
@@ -1431,9 +1440,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1446,7 +1455,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       );
 
       if (pick == null || !mounted) return;
-      final Uint8List pdfData = await File(pick.files.single.path!).readAsBytes();
+      final Uint8List pdfData = await File(
+        pick.files.single.path!,
+      ).readAsBytes();
 
       final TextEditingController passwordController = TextEditingController();
 
@@ -1483,9 +1494,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1525,7 +1536,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: level,
+                initialValue: level,
                 items: const [
                   DropdownMenuItem(value: 'a1b', child: Text('PDF/A-1B')),
                   DropdownMenuItem(value: 'a2b', child: Text('PDF/A-2B')),
@@ -1549,19 +1560,19 @@ class _ToolsScreenState extends State<ToolsScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      fontName,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(fontName, overflow: TextOverflow.ellipsis),
                   ),
                   TextButton(
                     onPressed: () async {
-                      FilePickerResult? pick = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['ttf', 'otf'],
-                      );
+                      FilePickerResult? pick = await FilePicker.platform
+                          .pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['ttf', 'otf'],
+                          );
                       if (pick != null && pick.files.single.path != null) {
-                        final data = await File(pick.files.single.path!).readAsBytes();
+                        final data = await File(
+                          pick.files.single.path!,
+                        ).readAsBytes();
                         setState(() {
                           fontData = data;
                           fontName = pick.files.single.name;
@@ -1643,7 +1654,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
     );
 
     if (pfxPick == null || !mounted) return;
-    final Uint8List pfxData = await File(pfxPick.files.single.path!).readAsBytes();
+    final Uint8List pfxData = await File(
+      pfxPick.files.single.path!,
+    ).readAsBytes();
 
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController reasonController = TextEditingController();
@@ -1706,9 +1719,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -1719,6 +1730,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
         if (result.success) {
           final previewPath = await _materializeResultPath(result);
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${tool.name} completed successfully!'),
@@ -1739,12 +1751,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     ),
             ),
           );
-          
+
           // Log success
-          _analytics.logUsePdfTool(
-            toolName: tool.id,
-            result: 'success',
-          );
+          _analytics.logUsePdfTool(toolName: tool.id, result: 'success');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1752,7 +1761,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               backgroundColor: Colors.red,
             ),
           );
-          
+
           // Log error
           _analytics.logError(
             errorType: 'tool_execution_error',
@@ -1765,12 +1774,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
-        
+
         // Log error
         _analytics.logError(
           errorType: 'tool_exception',
@@ -1866,6 +1872,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
         final file = File(result.files.single.path!);
         final pdfData = await file.readAsBytes();
 
+        if (!mounted) return;
+
         final summaryType = await showModalBottomSheet<String>(
           context: context,
           showDragHandle: true,
@@ -1906,9 +1914,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }

@@ -1,56 +1,33 @@
 import 'package:cactus/cactus.dart';
 import 'package:flutter/material.dart';
+import '../flutter_ai_toolkit/src/providers/implementations/local_llm_provider.dart';
+import '../flutter_ai_toolkit/src/views/llm_chat_view/llm_chat_view.dart';
 import '../llm/llm.dart';
 import '../services/analytics_service.dart';
-import '../tools/tools_manager.dart';
+import '../theme/app_theme.dart';
 
-/// Screen for interacting with LLM chat
+/// Screen for interacting with LLM chat using flutter_ai_toolkit's LlmChatView
 class LlmChatScreen extends StatefulWidget {
-  const LlmChatScreen({super.key});
+  const LlmChatScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<LlmChatScreen> createState() => _LlmChatScreenState();
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
+  static const String _targetModelSlug = 'qwen3-1.7-pro';
+
   final LlmService _llmService = LlmService();
-  final TextEditingController _promptController = TextEditingController();
   final AnalyticsService _analytics = AnalyticsService();
-
-  final List<Map<String, String>> _messages = [];
-  final List<LlmFunctionTool> _defaultTools = const [
-    LlmFunctionTool(
-      name: 'get_today_date',
-      description:
-          'Gets today\'s date. Use this when the user needs the current date or calendar info.',
-      parameters: {},
-    ),
-  ];
-
-  List<LlmFunctionTool> _getAllTools() {
-    final pdfTools = ToolsManager()
-        .getAllTools()
-        .map(
-          (t) => LlmFunctionTool(
-            name: t.id.replaceAll('-', '_'),
-            description: t.description,
-            parameters: t.parametersSchema,
-          ),
-        )
-        .toList();
-
-    return [..._defaultTools, ...pdfTools];
-  }
 
   bool _isModelLoaded = false;
   bool _isLoading = false;
   bool _isLoadingModels = false;
-  List<CactusModel> _availableModels = [];
-  String? _selectedModelSlug;
   String? _loadedModelSlug;
-  bool _enableTools = true;
-  DateTime? _requestStartTime;
-  bool _showModelSheet = false;
+  LocalLlmProvider? _provider;
+  String? _modelError;
 
   @override
   void initState() {
@@ -87,31 +64,45 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
 
     if (mounted) {
-      setState(() {
-        _availableModels = models;
-        _isLoadingModels = false;
-        if (_selectedModelSlug == null && models.isNotEmpty) {
-          _selectedModelSlug = models.first.slug;
-        }
-      });
+      setState(() => _isLoadingModels = false);
     }
-  }
 
-  Future<void> _loadModel() async {
-    setState(() => _isLoading = true);
-    final selected = _availableModels
-        .where((m) => m.slug == _selectedModelSlug)
-        .toList();
-    final model = selected.isNotEmpty ? selected.first : null;
-    if (model == null) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please select a model')));
-      }
+    final target = _selectTargetModel(models);
+    if (target == null) {
+      if (!mounted) return;
+      setState(() {
+        _modelError =
+            'Model $_targetModelSlug not found. Please check available models.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_modelError!)),
+      );
       return;
     }
+
+    await _loadModel(target);
+  }
+
+  CactusModel? _selectTargetModel(List<CactusModel> models) {
+    final direct =
+        models.where((m) => m.slug == _targetModelSlug).toList(growable: false);
+    if (direct.isNotEmpty) return direct.first;
+
+    final normalized = _targetModelSlug.toLowerCase();
+    final fuzzy = models.where((m) {
+      final slug = m.slug.toLowerCase();
+      final name = m.name.toLowerCase();
+      return slug.contains(normalized) || name.contains(normalized);
+    }).toList(growable: false);
+
+    return fuzzy.isNotEmpty ? fuzzy.first : null;
+  }
+
+  Future<void> _loadModel(CactusModel model) async {
+    setState(() {
+      _isLoading = true;
+      _modelError = null;
+    });
 
     final success = await _llmService.loadModel(
       model,
@@ -130,6 +121,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         if (success) {
           _loadedModelSlug = model.slug;
           model.isDownloaded = true;
+          // Create provider with loaded model
+          _provider = LocalLlmProvider(
+            llmService: _llmService,
+            systemPrompt:
+                'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and analyze attached PDFs (the extracted text will be included in the prompt).',
+          );
+        } else {
+          _modelError = _llmService.lastError ?? 'Failed to load model';
         }
       });
 
@@ -153,118 +152,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
   }
 
-  Future<void> _sendMessage() async {
-    if (_promptController.text.isEmpty) return;
-    if (!_isModelLoaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please load a model first')),
-      );
-      return;
-    }
-
-    final userMessage = _promptController.text;
-    setState(() {
-      _messages.add({'role': 'user', 'content': userMessage});
-      _isLoading = true;
-    });
-
-    _promptController.clear();
-
-    // Log user message
-    _analytics.logAiMessage(
-      messageType: 'user',
-      messageLength: userMessage.length,
-      model: _selectedModelSlug,
-    );
-
-    try {
-      _requestStartTime = DateTime.now();
-
-      final request = LlmGenerationRequest(
-        prompt: userMessage,
-        systemPrompt:
-            'You are a friendly and helpful AI assistant. You can chat naturally with the user and answer general questions. If the user says hi or greets you, greet them back gracefully. If the user asks about your capabilities or tools, politely explain that you can help them with calendar matters and perform various PDF processing tasks like summarizing, generating, or encrypting PDFs using the provided tools. Do NOT refuse to answer simple conversational questions.',
-        temperature: 0.7,
-        maxTokens: 512,
-        enableFunctionCalling: _llmService.supportsToolCalling && _enableTools,
-        tools: (_llmService.supportsToolCalling && _enableTools)
-            ? _getAllTools()
-            : const [],
-        onExecuteTool: (name, args) async {
-          var tool = ToolsManager().getTool(name);
-          tool ??= ToolsManager().getTool(name.replaceAll('_', '-'));
-          if (tool != null) {
-            final result = await tool.execute(args);
-            return {
-              'success': result.success.toString(),
-              if (result.errorMessage != null) 'error': result.errorMessage!,
-              if (result.metadata != null)
-                'metadata': result.metadata.toString(),
-            };
-          }
-          return null;
-        },
-      );
-
-      final response = await _llmService.generate(request);
-
-      // Log AI response
-      final latency = _requestStartTime != null
-          ? DateTime.now().difference(_requestStartTime!)
-          : Duration.zero;
-
-      _analytics.logAiResponse(
-        responseLength: response.content.length,
-        latency: latency,
-        model: _selectedModelSlug,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          if (response.isComplete && response.errorMessage == null) {
-            _messages.add({'role': 'assistant', 'content': response.content});
-          } else {
-            _messages.add({
-              'role': 'assistant',
-              'content': 'Error: ${response.errorMessage ?? 'Unknown error'}',
-            });
-            // Log error
-            _analytics.logError(
-              errorType: 'llm_generation_error',
-              errorMessage: response.errorMessage ?? 'Unknown error',
-              screen: 'llm_chat',
-              exception: response.errorMessage ?? 'Unknown error',
-              metadata: {
-                'model': _selectedModelSlug ?? 'unknown',
-                'is_complete': response.isComplete,
-              },
-            );
-          }
-        });
-      }
-    } catch (e, st) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        // Log error
-        _analytics.logError(
-          errorType: 'llm_exception',
-          errorMessage: e.toString(),
-          screen: 'llm_chat',
-          exception: e,
-          stackTrace: st,
-          metadata: {'model': _selectedModelSlug ?? 'unknown'},
-        );
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _promptController.dispose();
     _llmService.dispose();
     super.dispose();
   }
@@ -272,356 +161,135 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('AI Chat'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isModelLoaded ? Icons.check_circle : Icons.error,
-              color: _isModelLoaded ? Colors.green : Colors.red,
-            ),
-            tooltip: _isModelLoaded ? 'Model loaded' : 'No model loaded',
-            onPressed: () => _showModelInfo(),
-          ),
-        ],
       ),
       body: Column(
         children: [
-          _buildModelStatusBar(),
+          _buildModelBanner(),
           const Divider(height: 1),
           Expanded(
-            child: _messages.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No messages yet\nLoad a model to start chatting.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
+            child: _isModelLoaded && _provider != null
+                ? LlmChatView(
+                    provider: _provider!,
+                    style: AppTheme.chatStyle(context),
+                    enableAttachments: true,
+                    enableVoiceNotes: false,
+                    welcomeMessage:
+                        'Hello! I\'m your AI assistant. I can help you with PDF-related tasks. How can I assist you today?',
+                    suggestions: const [
+                      'What can you help me with?',
+                      'How do I merge PDFs?',
+                      'Can you summarize a PDF?',
+                    ],
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isUser = message['role'] == 'user';
-                      return _buildMessageBubble(
-                        message['content'] ?? '',
-                        isUser: isUser,
-                      );
-                    },
-                  ),
+                : _buildEmptyState(),
           ),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: LinearProgressIndicator(),
-            ),
-          _buildInputArea(),
         ],
       ),
     );
   }
 
-  Widget _buildModelStatusBar() {
-    final statusText = _isModelLoaded
-        ? 'Model loaded: ${_loadedModelSlug ?? 'unknown'}'
-        : 'No model loaded';
-    final statusColor = _isModelLoaded
-        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
-        : Colors.red.withValues(alpha: 0.12);
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.smart_toy,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _modelError != null ? 'Failed to load model' : 'Preparing model…',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _modelError ??
+                'Downloading and initializing $_targetModelSlug. This may take a moment.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade500,
+                ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    setState(() => _modelError = null);
+                    await _initializeService();
+                  },
+            icon: const Icon(Icons.refresh),
+            label: Text(_modelError != null ? 'Retry' : 'Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return InkWell(
-      onTap: _openModelSheet,
-      child: Container(
+  Widget _buildModelBanner() {
+    if (_modelError != null && _modelError!.isNotEmpty) {
+      return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: statusColor,
+          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.12),
           border: Border(
             bottom: BorderSide(color: Theme.of(context).dividerColor),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              _isModelLoaded ? Icons.check_circle : Icons.error,
-              color: _isModelLoaded ? Colors.green : Colors.red,
-            ),
+            Icon(Icons.error, color: Theme.of(context).colorScheme.error),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                statusText,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-            TextButton(
-              onPressed: _openModelSheet,
-              child: const Text('Model Settings'),
-            ),
+            Expanded(child: Text(_modelError!)),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  void _openModelSheet() {
-    if (_showModelSheet) return;
-    _showModelSheet = true;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => ModelSelectorSheet(
-        availableModels: _availableModels,
-        selectedModelSlug: _selectedModelSlug,
-        loadedModelSlug: _loadedModelSlug,
-        isModelLoaded: _isModelLoaded,
-        isLoading: _isLoading,
-        isLoadingModels: _isLoadingModels,
-        enableTools: _enableTools,
-        onModelSelected: (slug) {
-          setState(() {
-            _selectedModelSlug = slug;
-            final selected = _availableModels
-                .where((m) => m.slug == slug)
-                .toList();
-            final model = selected.isNotEmpty ? selected.first : null;
-            if (model != null && !model.supportsToolCalling) {
-              _enableTools = false;
-            }
-          });
-        },
-        onToolsEnabledChanged: (enabled) {
-          setState(() => _enableTools = enabled);
-        },
-        onLoadModel: _loadModel,
-      ),
-    ).whenComplete(() {
-      _showModelSheet = false;
-    });
-  }
+    if (_isModelLoaded) {
+      return const SizedBox.shrink();
+    }
 
-  Widget _buildMessageBubble(String content, {required bool isUser}) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+    final statusText = _isModelLoaded
+        ? 'Model ready: ${_loadedModelSlug ?? _targetModelSlug}'
+        : _isLoadingModels || _isLoading
+            ? 'Preparing model $_targetModelSlug…'
+            : 'Model not loaded';
+    final statusColor = _isModelLoaded
+        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+        : Theme.of(context).colorScheme.surfaceContainerHighest;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: statusColor,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
-        child: Text(content),
       ),
-    );
-  }
-
-  Widget _buildInputArea() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
+          Icon(
+            _isModelLoaded ? Icons.check_circle : Icons.hourglass_top,
+            color: _isModelLoaded
+                ? Colors.green
+                : Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: TextField(
-              controller: _promptController,
-              decoration: const InputDecoration(
-                hintText: 'Type a message...',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _sendMessage(),
-              enabled: _isModelLoaded && !_isLoading,
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: (_isModelLoaded && !_isLoading) ? _sendMessage : null,
-            icon: const Icon(Icons.send),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showModelInfo() {
-    final info = _llmService.getModelInfo();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Model Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoRow('Name', info.name),
-            _buildInfoRow('Loaded', info.isLoaded ? 'Yes' : 'No'),
-            if (info.contextSize != null)
-              _buildInfoRow('Context Size', '${info.contextSize}'),
-            _buildInfoRow('Slug', info.slug),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
             child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              statusText,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-}
-
-class ModelSelectorSheet extends StatefulWidget {
-  final List<CactusModel> availableModels;
-  final String? selectedModelSlug;
-  final String? loadedModelSlug;
-  final bool isModelLoaded;
-  final bool isLoading;
-  final bool isLoadingModels;
-  final bool enableTools;
-  final ValueChanged<String> onModelSelected;
-  final ValueChanged<bool> onToolsEnabledChanged;
-  final VoidCallback onLoadModel;
-
-  const ModelSelectorSheet({
-    super.key,
-    required this.availableModels,
-    required this.selectedModelSlug,
-    required this.loadedModelSlug,
-    required this.isModelLoaded,
-    required this.isLoading,
-    required this.isLoadingModels,
-    required this.enableTools,
-    required this.onModelSelected,
-    required this.onToolsEnabledChanged,
-    required this.onLoadModel,
-  });
-
-  @override
-  State<ModelSelectorSheet> createState() => _ModelSelectorSheetState();
-}
-
-class _ModelSelectorSheetState extends State<ModelSelectorSheet> {
-  String? _localSelectedSlug;
-
-  @override
-  void initState() {
-    super.initState();
-    _localSelectedSlug = widget.selectedModelSlug;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        top: 8,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Model', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (widget.isLoadingModels)
-            const Text('Loading supported models...')
-          else if (widget.availableModels.isEmpty)
-            const Text('No models available. Try again later.')
-          else
-            DropdownButtonFormField<String>(
-              value: _localSelectedSlug,
-              decoration: const InputDecoration(labelText: 'Select model'),
-              items: widget.availableModels.map((model) {
-                final supportsTools = model.supportsToolCalling
-                    ? ' • tools'
-                    : '';
-                final downloaded = model.isDownloaded ? ' • downloaded' : '';
-                final suffix = '$supportsTools$downloaded';
-                return DropdownMenuItem<String>(
-                  value: model.slug,
-                  child: Text('${model.name} (${model.slug})$suffix'),
-                );
-              }).toList(),
-              onChanged: widget.isLoading
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _localSelectedSlug = value;
-                      });
-                      if (value != null) {
-                        widget.onModelSelected(value);
-                      }
-                    },
-            ),
-          const SizedBox(height: 8),
-          if (_localSelectedSlug != null)
-            Builder(
-              builder: (context) {
-                final selected = widget.availableModels
-                    .where((m) => m.slug == _localSelectedSlug)
-                    .toList();
-                final model = selected.isNotEmpty ? selected.first : null;
-                final supportsTools = model?.supportsToolCalling == true;
-                if (!supportsTools) return const SizedBox.shrink();
-                return SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Enable tools (function calling)'),
-                  value: widget.enableTools,
-                  onChanged: widget.isLoading
-                      ? null
-                      : (value) => widget.onToolsEnabledChanged(value),
-                );
-              },
-            ),
-          if (_localSelectedSlug != null) const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: (widget.isLoading || widget.isLoadingModels)
-                ? null
-                : widget.onLoadModel,
-            child: const Text('Download & Load'),
-          ),
-          if (widget.loadedModelSlug != null && widget.isModelLoaded)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Loaded: ${widget.loadedModelSlug}',
-                style: TextStyle(color: Colors.green.shade700),
-              ),
-            ),
-          const SizedBox(height: 12),
         ],
       ),
     );

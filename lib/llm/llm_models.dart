@@ -1,22 +1,14 @@
-/// LLM model configuration and types
 import 'package:cactus/cactus.dart';
 
 /// LLM message role
-enum LlmMessageRole {
-  system,
-  user,
-  assistant,
-}
+enum LlmMessageRole { system, user, assistant }
 
 /// LLM message for chat
 class LlmMessage {
   final LlmMessageRole role;
   final String content;
 
-  const LlmMessage({
-    required this.role,
-    required this.content,
-  });
+  const LlmMessage({required this.role, required this.content});
 
   /// Convert to Cactus ChatMessage
   ChatMessage toChatMessage() {
@@ -33,7 +25,11 @@ class LlmGenerationRequest {
   final int topP;
   final bool enableFunctionCalling;
   final List<LlmFunctionTool> tools;
-  final Future<Map<String, String>?> Function(String toolName, Map<String, String> args)? onExecuteTool;
+  final Future<Map<String, String>?> Function(
+    String toolName,
+    Map<String, String> args,
+  )?
+  onExecuteTool;
 
   const LlmGenerationRequest({
     required this.prompt,
@@ -79,10 +75,7 @@ class LlmChunk {
   final String content;
   final bool isComplete;
 
-  const LlmChunk({
-    required this.content,
-    this.isComplete = false,
-  });
+  const LlmChunk({required this.content, this.isComplete = false});
 }
 
 /// LLM model info

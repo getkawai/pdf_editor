@@ -129,7 +129,7 @@ class ActionButtonStyle {
         icon = null; // Placeholder for URL icon
         color = ToolkitColors.darkIcon;
         bgColor = ToolkitColors.transparent;
-        text = strings.attachFile;
+        text = strings.attachUrl;
         textStyle = ToolkitTextStyles.body2;
     }
 

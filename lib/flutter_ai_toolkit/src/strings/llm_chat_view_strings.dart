@@ -20,6 +20,12 @@ class LlmChatViewStrings {
   /// Label for attaching a file.
   final String attachFile;
 
+  /// Label for attaching a URL.
+  final String attachUrl;
+
+  /// Label for scanning a document.
+  final String scanDocument;
+
   /// Label for taking a photo.
   final String takePhoto;
 
@@ -64,6 +70,9 @@ class LlmChatViewStrings {
 
   /// Error message prefix when unable to pick a url.
   final String unableToPickUrl;
+
+  /// Error message prefix when unable to scan a document.
+  final String unableToScanDocument;
 
   /// Confirmation message when a message is copied to clipboard.
   final String messageCopiedToClipboard;
@@ -156,6 +165,8 @@ class LlmChatViewStrings {
     // Input/Attachment related
     this.addAttachment = 'Add Attachment',
     this.attachFile = 'Attach File',
+    this.attachUrl = 'Attach URL',
+    this.scanDocument = 'Scan Document',
     this.takePhoto = 'Take Photo',
     this.attachImage = 'Attach Image',
     this.recordAudio = 'Record Audio',
@@ -192,6 +203,7 @@ class LlmChatViewStrings {
     this.unableToPickImage = 'Unable to pick an image: ',
     this.unableToPickFile = 'Unable to pick a file: ',
     this.unableToPickUrl = 'Unable to pick a URL: ',
+    this.unableToScanDocument = 'Unable to scan document: ',
     this.messageCopiedToClipboard = 'Message copied to clipboard',
     this.editing = 'Editing',
     this.error = 'Error',
@@ -211,6 +223,8 @@ class LlmChatViewStrings {
   LlmChatViewStrings copyWith({
     String? addAttachment,
     String? attachFile,
+    String? attachUrl,
+    String? scanDocument,
     String? takePhoto,
     String? stop,
     String? close,
@@ -226,6 +240,7 @@ class LlmChatViewStrings {
     String? unableToPickImage,
     String? unableToPickFile,
     String? unableToPickUrl,
+    String? unableToScanDocument,
     String? messageCopiedToClipboard,
     String? editing,
     String? error,
@@ -262,6 +277,8 @@ class LlmChatViewStrings {
     return LlmChatViewStrings(
       addAttachment: addAttachment ?? this.addAttachment,
       attachFile: attachFile ?? this.attachFile,
+      attachUrl: attachUrl ?? this.attachUrl,
+      scanDocument: scanDocument ?? this.scanDocument,
       takePhoto: takePhoto ?? this.takePhoto,
       stop: stop ?? this.stop,
       close: close ?? this.close,
@@ -278,6 +295,8 @@ class LlmChatViewStrings {
       unableToPickImage: unableToPickImage ?? this.unableToPickImage,
       unableToPickFile: unableToPickFile ?? this.unableToPickFile,
       unableToPickUrl: unableToPickUrl ?? this.unableToPickUrl,
+      unableToScanDocument:
+          unableToScanDocument ?? this.unableToScanDocument,
       messageCopiedToClipboard:
           messageCopiedToClipboard ?? this.messageCopiedToClipboard,
       editing: editing ?? this.editing,

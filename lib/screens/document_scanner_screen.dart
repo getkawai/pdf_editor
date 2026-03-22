@@ -7,7 +7,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'pdf_viewer_screen.dart';
 
 class DocumentScannerScreen extends StatefulWidget {
-  const DocumentScannerScreen({super.key});
+  const DocumentScannerScreen({super.key, this.drawer});
+
+  final Widget? drawer;
 
   @override
   State<DocumentScannerScreen> createState() => _DocumentScannerScreenState();
@@ -84,6 +86,7 @@ class _DocumentScannerScreenState extends State<DocumentScannerScreen> {
     final pdfPath = _pdfFilePath();
 
     return Scaffold(
+      drawer: widget.drawer,
       appBar: AppBar(
         title: const Text('Document Scanner'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -116,7 +119,10 @@ class _DocumentScannerScreenState extends State<DocumentScannerScreen> {
                   : const Icon(Icons.camera_alt),
               label: Text(_isScanning ? 'Scanning…' : 'Start Scan'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
               ),
             ),
             if (!isSupported) ...[
@@ -180,7 +186,7 @@ class _DocumentScannerScreenState extends State<DocumentScannerScreen> {
               Expanded(
                 child: ListView.separated(
                   itemCount: _lastImages!.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final imagePath = _lastImages![index];
                     return ListTile(

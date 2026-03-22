@@ -3,7 +3,7 @@ import 'home_screen.dart';
 import 'tools_screen.dart';
 import 'document_scanner_screen.dart';
 import 'llm_chat_screen.dart';
-import '../services/analytics_service.dart';
+import 'widgets/app_drawer.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -13,54 +13,24 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
-  final AnalyticsService _analytics = AnalyticsService();
-  static const List<String> _tabLabels = [
-    'home',
-    'tools',
-    'scan',
-    'ai_chat',
-  ];
+  static const int _chatIndex = 0;
+
+  int _currentIndex = _chatIndex;
 
   @override
   Widget build(BuildContext context) {
+    final drawer = _buildDrawer();
     final screens = <Widget>[
-      HomeScreen(onNavigateToTab: _setTab),
-      const ToolsScreen(),
-      const DocumentScannerScreen(),
-      const LlmChatScreen(),
+      LlmChatScreen(drawer: drawer),
+      HomeScreen(onNavigateToTab: _setTab, drawer: drawer),
+      ToolsScreen(drawer: drawer),
+      DocumentScannerScreen(drawer: drawer),
     ];
 
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _setTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.build_outlined),
-            selectedIcon: Icon(Icons.build),
-            label: 'Tools',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.document_scanner_outlined),
-            selectedIcon: Icon(Icons.document_scanner),
-            label: 'Scan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy),
-            label: 'AI Chat',
-          ),
-        ],
       ),
     );
   }
@@ -70,8 +40,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() {
       _currentIndex = index;
     });
-    _logTabChange(index);
   }
 
-  void _logTabChange(int index) {}
+  Widget _buildDrawer() {
+    return AppDrawer(
+      currentIndex: _currentIndex,
+      onSelect: _setTab,
+    );
+  }
 }
