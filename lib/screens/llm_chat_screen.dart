@@ -17,7 +17,7 @@ class LlmChatScreen extends StatefulWidget {
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
-  static const String _targetModelSlug = 'lfm2-1.2b-tool';
+  static const String _targetModelSlug = 'qwen3-1.7-pro';
 
   final LlmService _llmService = LlmService();
   final AnalyticsService _analytics = AnalyticsService();
