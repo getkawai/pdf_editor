@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
@@ -8,6 +9,7 @@ import '../../providers/interface/chat_message.dart';
 import '../../../../llm/llm_service.dart';
 import '../../../../llm/llm_models.dart';
 import '../../../../services/analytics_service.dart';
+import '../../../../tools/tools_manager.dart';
 
 /// An implementation of [LlmProvider] that uses [LlmService] for local LLM inference.
 class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
@@ -140,20 +142,20 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
   }
 
   List<LlmFunctionTool> _getDefaultTools() {
-    return const [
-      LlmFunctionTool(
-        name: 'get_today_date',
-        description:
-            'Gets today\'s date. Use this when the user needs the current date or calendar info.',
-        parameters: {},
-      ),
-      LlmFunctionTool(
-        name: 'summarize_attached_pdf',
-        description:
-            'Summarize the PDF attached to the most recent user message.',
-        parameters: {},
-      ),
-    ];
+    final toolManager = ToolsManager();
+    final pdfTools = toolManager.getAllTools();
+
+    final llmTools = pdfTools
+        .map(
+          (tool) => LlmFunctionTool(
+            name: tool.id,
+            description: tool.description,
+            parameters: tool.parametersSchema,
+          ),
+        )
+        .toList();
+
+    return llmTools;
   }
 
   Future<Map<String, String>?> _onExecuteTool(
@@ -161,38 +163,38 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
     Map<String, String> arguments,
   ) async {
     switch (name) {
-      case 'summarize_attached_pdf':
-        final summary = await _summarizeAttachedPdf();
-        if (summary == null) {
-          return {'error': 'No PDF attachment found or unable to summarize.'};
-        }
-        return {'summary': summary};
-      case 'get_today_date':
-        final today = DateTime.now();
-        const months = [
-          'January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December',
-        ];
-        final monthName = months[today.month - 1];
-        return {'today_date': '${today.day} $monthName ${today.year}'};
       default:
-        // Try to execute from ToolsManager
-        // This would require importing tools_manager
-        return null;
+        final manager = ToolsManager();
+        final params = Map<String, dynamic>.from(arguments);
+        _injectPdfAttachment(params);
+        final tool =
+            manager.getTool(name) ?? manager.getTool(name.replaceAll('_', '-'));
+        if (tool == null) {
+          return {
+            'success': 'false',
+            'error': 'Tool not found: $name',
+          };
+        }
+        final result = await manager.executeTool(tool.id, params);
+        if (result.success) {
+          final response = <String, String>{'success': 'true'};
+          if (result.pdfData != null && result.pdfData!.isNotEmpty) {
+            response['pdfDataBase64'] = base64Encode(result.pdfData!);
+          }
+          if (result.metadata != null) {
+            response['metadata'] = result.metadata.toString();
+          }
+          return response;
+        }
+        return {
+          'success': 'false',
+          'error': result.errorMessage ?? 'Tool execution failed',
+        };
     }
   }
 
-  Future<String?> _summarizeAttachedPdf() async {
+  void _injectPdfAttachment(Map<String, dynamic> params) {
+    if (params.containsKey('pdfData')) return;
     final pdfAttachment = _lastUserAttachments.firstWhere(
       (attachment) =>
           attachment is FileAttachment &&
@@ -200,26 +202,9 @@ class LocalLlmProvider extends ChangeNotifier implements LlmProvider {
               attachment.name.toLowerCase().endsWith('.pdf')),
       orElse: () => LinkAttachment(name: '', url: Uri()),
     );
-
-    if (pdfAttachment is! FileAttachment) return null;
-
-    final text = _extractTextFromPdf(pdfAttachment.bytes);
-    if (text.trim().isEmpty) return null;
-
-    final truncated = text.length > 6000 ? text.substring(0, 6000) : text;
-    final request = LlmGenerationRequest(
-      prompt: 'Please summarize the following PDF content:\n\n$truncated',
-      systemPrompt: 'You are a helpful assistant that summarizes documents.',
-      temperature: 0.4,
-      maxTokens: 512,
-      enableFunctionCalling: false,
-    );
-
-    final response = await llmService.generate(request);
-    if (!response.isComplete || response.errorMessage != null) {
-      return null;
+    if (pdfAttachment is FileAttachment) {
+      params['pdfData'] = pdfAttachment.bytes;
     }
-    return response.content;
   }
 
   String _extractTextFromPdf(Uint8List pdfData) {

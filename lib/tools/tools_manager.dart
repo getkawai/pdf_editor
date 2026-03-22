@@ -15,6 +15,8 @@ import 'pdf_a_conformance_tool.dart';
 import 'table_to_pdf_tool.dart';
 import 'list_to_pdf_tool.dart';
 import 'ocr_pdf_tool.dart';
+import 'today_date_tool.dart';
+import 'summarize_attached_pdf_tool.dart';
 
 /// Manager for initializing and accessing PDF tools
 class ToolsManager {
@@ -43,6 +45,10 @@ class ToolsManager {
     // AI tools
     _registry.registerTool(AiPdfAssistantTool());
     _registry.registerTool(SummarizePdfTool());
+    _registry.registerTool(SummarizeAttachedPdfTool());
+
+    // Utility tools
+    _registry.registerTool(TodayDateTool());
 
     // Table and List tools
     _registry.registerTool(TableToPdfTool());
